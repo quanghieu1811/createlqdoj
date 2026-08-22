@@ -22,6 +22,6 @@ export interface GenerationRequest {
   category: string;
   briefIdea?: string;
   problemType: 'standard' | 'checker' | 'interactive';
-  model?: 'gemini-flash-latest' | 'gemma-4-31b-it';
+  model?: string;
   apiKey?: string;
 }

@@ -12,13 +12,12 @@ app.use(express.json({ limit: "50mb" }));
 
 // Helper to resolve client-specified model to official API model
 const resolveModel = (clientModel?: string) => {
-  if (clientModel === "gemini-flash-latest") {
-    return "gemini-flash-latest";
+  if (!clientModel || !clientModel.trim()) {
+    return "gemini-flash-latest"; // Default
   }
-  if (clientModel === "gemma-4-31b-it") {
-    return "gemma-4-31b-it";
-  }
-  return "gemini-flash-latest"; // Default exactly as user wanted
+  const clean = clientModel.trim();
+  // Strip 'models/' prefix if provided
+  return clean.startsWith("models/") ? clean.replace("models/", "") : clean;
 };
 
 // Helper to build cohesive system instructions reflecting user guidelines and platform requirements

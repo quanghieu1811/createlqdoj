@@ -56,11 +56,15 @@ export default function App() {
 
   // API Key and model settings
   const [apiKey, setApiKey] = useState<string>(() => localStorage.getItem("gemini_api_key") || "");
-  const [model, setModel] = useState<'gemini-flash-latest' | 'gemma-4-31b-it'>("gemini-flash-latest");
+  const [model, setModel] = useState<string>(() => localStorage.getItem("gemini_model") || "gemini-flash-latest");
 
   useEffect(() => {
     localStorage.setItem("gemini_api_key", apiKey);
   }, [apiKey]);
+
+  useEffect(() => {
+    localStorage.setItem("gemini_model", model);
+  }, [model]);
 
   // Helper to build cohesive system instructions reflecting user guidelines and platform requirements
   const buildSystemInstruction = (rating: any, category: any) => {
@@ -169,9 +173,11 @@ YÊU CẦU CHI TIẾT CỦA CÁC THÀNH PHẦN:
     clientModel: string,
     onStepChange?: (step: number) => void
   ) => {
-    // We map clientModel choice to official high-capability Gemini models
-    // gemma-4-31b-it maps to the incredibly capable gemini-1.5-pro-latest which is perfect for code & math
-    const officialModel = clientModel === "gemma-4-31b-it" ? "gemma-4-31b-it" : "gemini-flash-latest";
+    // Resolve model name, stripping any leading 'models/' if input by user
+    let officialModel = clientModel && clientModel.trim() ? clientModel.trim() : "gemini-flash-latest";
+    if (officialModel.startsWith("models/")) {
+      officialModel = officialModel.replace("models/", "");
+    }
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${officialModel}:streamGenerateContent?key=${apiKey}`;
 
     const response = await fetch(url, {
@@ -555,7 +561,7 @@ LƯU Ý KHI CHỈNH SỬA:
 
                   let stepText = step;
                   if (idx === 0) {
-                    stepText = `${model === "gemini-flash-latest" ? "Gemini Flash" : "Gemma 4 31B IT"} đang phân tích yêu cầu...`;
+                    stepText = `Mô hình ${model} đang phân tích yêu cầu...`;
                   }
 
                   return (
