@@ -1,0 +1,6 @@
+{
+  "name": "LQDOJ Problem Generator",
+  "description": "Ứng dụng hỗ trợ tạo bài tập lập trình thi đấu theo chuẩn hệ thống LQDOJ sử dụng AI Gemma 4 31B IT.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
