@@ -67,9 +67,10 @@ export default function App() {
   }, [model]);
 
   // Helper to build cohesive system instructions reflecting user guidelines and platform requirements
-  const buildSystemInstruction = (rating: any, category: any) => {
+  const buildSystemInstruction = (rating: any, category: any, testCount: number = 100) => {
     const ratingStr = rating === "random" ? "tùy chọn ngẫu nhiên phù hợp từ 800 đến 3500 (hãy tự chọn độ khó thích hợp và ghi chính xác số này vào trường rating trong JSON)" : (rating || 1400);
     const categoryStr = category === "Random" ? "tùy chọn ngẫu nhiên chủ đề theo Thể lệ Memes Tournament 2026-2027 (Phụ lục 2: Giới hạn kiến thức THCS & THPT, ghi chính xác tên chủ đề vào trường category trong JSON)" : (category || "Quy hoạch động cơ bản");
+    const count = testCount && testCount >= 5 && testCount <= 200 ? testCount : 100;
     return `Bạn đóng vai trò là "Gemma 4 31B IT" - Mô hình ngôn ngữ lớn chuyên gia thiết kế đề thi lập trình thi đấu (Problem Setter) kỳ cựu trên nền tảng LQDOJ (Lê Quý Đôn Online Judge) và Ban ra đề cuộc thi Memes Tournament năm học 2026 - 2027 (Fan Memes × CBRT Online Judge).
 Nhiệm vụ của bạn là thiết kế một bài tập lập trình hoàn chỉnh, chuyên nghiệp và có độ chính xác khoa học tuyệt đối, nhắm tới độ khó rating ${ratingStr} và chủ đề "${categoryStr}".
 
@@ -112,14 +113,14 @@ YÊU CẦU CHI TIẾT CỦA CÁC THÀNH PHẦN:
         [Giải thích ví dụ nếu cần]
 
 #### Scoring
-- Subtask 1 (x điểm): $1 \le n \le 100$
-- Subtask 2 (y điểm): $1 \le n \le 10^5$
+- Subtask 1 (x điểm): $1 \\le n \\le 100$
+- Subtask 2 (y điểm): $1 \\le n \\le 10^5$
 
 - QUY TẮC BẮT BUỘC VỀ ĐỊNH DẠNG:
   + Dùng đúng 4 mục tiêu đề level 4: \`#### Input\`, \`#### Output\`, \`#### Example\`, \`#### Scoring\`.
   + Các ví dụ testcase phải dùng đúng cấu trúc khối thông báo MkDocs Admonition (\`!!! question "Test 1"\`, \`???+ "Input"\`, \`???+ success "Output"\`, \`??? warning "Note"\`).
   + Khối mã mẫu phải kẹp trong \`\`\`sample.
-  + Sử dụng ký hiệu Toán học bằng LaTeX (kẹp giữa dấu $) như $1 \le N \le 10^5$. Hãy chắc chắn dấu gạch chéo ngược được escape đúng trong JSON (dùng \\\\ thay vì \\).
+  + Sử dụng ký hiệu Toán học bằng LaTeX (kẹp giữa dấu $) như $1 \\le N \\le 10^5$. Hãy chắc chắn dấu gạch chéo ngược được escape đúng trong JSON (dùng \\\\ thay vì \\).
 
 2. TEST GENERATOR (testGenerator) VÀ SCRIPT (generatorScript):
 - Viết mã nguồn C++ sinh test ngẫu nhiên hoàn chỉnh (generator.cpp). Chương trình nhận các tham số ràng buộc cộng thêm seed qua đối số dòng lệnh:
@@ -129,7 +130,7 @@ YÊU CẦU CHI TIẾT CỦA CÁC THÀNH PHẦN:
 - Generator phải:
   - In dữ liệu đầu vào (input) ra stdout (cout).
   - In dữ liệu đầu ra mong đợi (lời giải/đáp án chuẩn) ra stderr (cerr).
-- Bạn phải cung cấp kịch bản sinh test "generatorScript" gồm ĐÚNG 100 dòng tương ứng với 100 testcases mạnh khác nhau. Mỗi dòng chứa các tham số truyền vào lệnh ./generator, kết thúc bằng một seed thay đổi liên tục cho mỗi testcase (để tránh trùng lặp). Dải tham số trên 100 dòng phải phân bố đều từ các giới hạn cực nhỏ (cho Subtask 1) đến giới hạn tối đa cực lớn (cho Subtask cuối).
+- Bạn phải cung cấp kịch bản sinh test "generatorScript" gồm ĐÚNG ${count} dòng tương ứng với ${count} testcases mạnh khác nhau. Mỗi dòng chứa các tham số truyền vào lệnh ./generator, kết thúc bằng một seed thay đổi liên tục cho mỗi testcase (để tránh trùng lặp). Dải tham số trên ${count} dòng phải phân bố đều từ các giới hạn cực nhỏ (cho Subtask 1) đến giới hạn tối đa cực lớn (cho Subtask cuối).
 
 3. CUSTOM CHECKER (checker) [C++]:
 - Nếu đề bài thuộc thể loại 'checker' (nhiều đáp án đúng hoặc định dạng chấm điểm đặc biệt), bạn phải viết một chương trình checker hoàn chỉnh bằng C++ chạy dạng:
@@ -171,6 +172,7 @@ YÊU CẦU CHI TIẾT CỦA CÁC THÀNH PHẦN:
     systemInstruction: string,
     userPrompt: string,
     clientModel: string,
+    testCount: number = 100,
     onStepChange?: (step: number) => void
   ) => {
     // Resolve model name, stripping any leading 'models/' if input by user
@@ -220,7 +222,7 @@ YÊU CẦU CHI TIẾT CỦA CÁC THÀNH PHẦN:
               },
               generatorScript: { 
                 type: "STRING", 
-                description: "Script sinh test gồm đúng 100 dòng tương ứng với 100 testcases mạnh khác nhau. Mỗi dòng chứa các tham số truyền cho generator, cột cuối cùng là seed ngẫu nhiên thay đổi liên tục." 
+                description: `Script sinh test gồm đúng ${testCount} dòng tương ứng với ${testCount} testcases mạnh khác nhau. Mỗi dòng chứa các tham số truyền cho generator, cột cuối cùng là seed ngẫu nhiên thay đổi liên tục.` 
               },
               checker: { 
                 type: "STRING", 
@@ -371,12 +373,15 @@ YÊU CẦU CHI TIẾT CỦA CÁC THÀNH PHẦN:
         ? fallbackCategories[Math.floor(Math.random() * fallbackCategories.length)]
         : request.category;
 
-      const systemInstruction = buildSystemInstruction(finalRating, finalCategory);
+      const finalTestCount = request.testCount && request.testCount >= 5 && request.testCount <= 200 ? request.testCount : 100;
+
+      const systemInstruction = buildSystemInstruction(finalRating, finalCategory, finalTestCount);
       
       const userPrompt = `Hãy tạo một bài tập lập trình hoàn chỉnh mới với các thông số sau:
 - Độ khó (Rating): ${finalRating}
 - Chủ đề: ${finalCategory}
 - Thể loại bài: ${request.problemType}
+- Số lượng testcase sinh tự động: ${finalTestCount} testcases (kịch bản generatorScript bắt buộc gồm đúng ${finalTestCount} dòng tham số khác nhau)
 ${request.briefIdea ? `- Ý tưởng sơ lược hoặc gợi ý từ người dùng: ${request.briefIdea}` : "- Hãy tự sáng tạo ra một bài tập độc đáo, thú vị và phát biểu toán học trực tiếp (tuyệt đối không viết cốt truyện) phù hợp với rating và chủ đề này."}
 
 Hãy trả về kết quả hoàn toàn dưới dạng JSON tuân thủ đúng cấu trúc schema yêu cầu.`;
@@ -385,6 +390,7 @@ Hãy trả về kết quả hoàn toàn dưới dạng JSON tuân thủ đúng c
         systemInstruction,
         userPrompt,
         model,
+        finalTestCount,
         (step) => {
           setCurrentStepIdx(step);
         }
@@ -392,6 +398,7 @@ Hãy trả về kết quả hoàn toàn dưới dạng JSON tuân thủ đúng c
 
       // Parse final compiled JSON response
       const data = JSON.parse(accumulatedText);
+      data.testCount = finalTestCount;
       setProblem(data);
     } catch (err: any) {
       console.error("Lỗi streaming trực tiếp:", err);
@@ -410,11 +417,13 @@ Hãy trả về kết quả hoàn toàn dưới dạng JSON tuân thủ đúng c
     setRefining(true);
     setError(null);
     try {
-      const systemInstruction = buildSystemInstruction(problem.rating, problem.category);
+      const currentTestCount = problem.testCount || 100;
+      const systemInstruction = buildSystemInstruction(problem.rating, problem.category, currentTestCount);
       const userPrompt = `Dưới đây là bài toán lập trình hiện tại đã được sinh ra:
 Tiêu đề: ${problem.title}
 Chủ đề: ${problem.category}
 Rating: ${problem.rating}
+Số lượng testcase (testCount): ${currentTestCount}
 
 Mã nguồn sinh test (generator.cpp):
 ${problem.testGenerator}
@@ -427,6 +436,7 @@ Hãy CHỈNH SỬA VÀ CẬP NHẬT bài toán này dựa trên phản hồi c�
 
 LƯU Ý KHI CHỈNH SỬA:
 - Giữ nguyên các phần không bị yêu cầu thay đổi để đảm bảo tính nhất quán.
+- Kịch bản generatorScript vẫn phải giữ đúng ${currentTestCount} dòng testcase tương ứng.
 - Nếu người dùng yêu cầu chỉnh sửa giới hạn, hãy cập nhật tương ứng ở cả Đề bài, Trình sinh test (generator.cpp) và phần Phân tích thuật toán.
 - Đảm bảo mã nguồn C++ (giải thuật mẫu và trình sinh test) vẫn hoàn toàn chính xác và biên dịch được sau khi sửa đổi.
 - Trả về đối tượng JSON đầy đủ sau khi đã sửa đổi.`;
@@ -434,10 +444,12 @@ LƯU Ý KHI CHỈNH SỬA:
       const accumulatedText = await callGeminiStreamDirect(
         systemInstruction,
         userPrompt,
-        model
+        model,
+        currentTestCount
       );
 
       const data = JSON.parse(accumulatedText);
+      data.testCount = currentTestCount;
       setProblem(data);
     } catch (err: any) {
       console.error(err);

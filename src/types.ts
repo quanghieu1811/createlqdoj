@@ -11,6 +11,7 @@ export interface LQDOJProblem {
   problemStatement: string;
   testGenerator: string;
   generatorScript: string;
+  testCount?: number;
   checker: string | null;
   interactive: string | null;
   solutions: SubtaskSolution[];
@@ -22,6 +23,7 @@ export interface GenerationRequest {
   category: string;
   briefIdea?: string;
   problemType: 'standard' | 'checker' | 'interactive';
+  testCount?: number;
   model?: string;
   apiKey?: string;
 }

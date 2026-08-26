@@ -13,7 +13,14 @@ import {
   Copy, 
   Check,
   ChevronRight,
-  Sparkles
+  Sparkles,
+  Trophy,
+  Layers,
+  FileCheck,
+  Cpu,
+  Download,
+  Flame,
+  Wand2
 } from "lucide-react";
 import JSZip from "jszip";
 
@@ -28,6 +35,10 @@ export const ProblemViewer: React.FC<ProblemViewerProps> = ({ problem, onRefine,
   const [activeSolutionIdx, setActiveSolutionIdx] = useState<number>(0);
   const [copiedStatement, setCopiedStatement] = useState(false);
   const [refineFeedback, setRefineFeedback] = useState("");
+
+  const scriptLines = problem.generatorScript 
+    ? problem.generatorScript.trim().split("\n").filter(Boolean).length 
+    : (problem.testCount || 100);
 
   const handleCopyStatement = async () => {
     try {
@@ -76,11 +87,12 @@ export const ProblemViewer: React.FC<ProblemViewerProps> = ({ problem, onRefine,
 ===================================================
 Chủ đề: ${problem.category}
 Rating: ${problem.rating}
+Số lượng testcase: ${scriptLines}
 
 BÊN TRONG FILE ZIP NÀY BAO GỒM:
 1. statement.md: Đề bài lập trình định dạng Markdown chuẩn LQDOJ.
 2. generator.cpp: Mã nguồn C++ sinh dữ liệu test ngẫu nhiên (đầu vào qua stdout, đáp án qua stderr).
-3. script.txt: Script sinh test gồm 100 dòng tham số tương ứng với 100 testcases mạnh.
+3. script.txt: Script sinh test gồm đúng ${scriptLines} dòng tham số tương ứng với ${scriptLines} testcases mạnh.
 4. solution_*: Mã nguồn giải thuật C++ mẫu cho từng subtask tương ứng.
 5. checker.cpp: Trình chấm đặc biệt (Special Judge) nếu có.
 6. interactive.cpp: Trình tương tác (Interactive Manager) nếu có.
@@ -114,141 +126,206 @@ CÁCH SỬ DỤNG TRÌNH SINH TEST (generator.cpp) VÀ SCRIPT:
     setRefineFeedback("");
   };
 
+  const QUICK_REFINE_PROMPTS = [
+    "Tăng giới hạn thời gian và N lên 10^6",
+    "Thêm subtask vét cạn O(N^2) cho học sinh THCS",
+    "Đơn giản hóa đề bài, bỏ bớt cốt truyện dài",
+    "Bổ sung giải thích chi tiết hơn cho các testcase ví dụ",
+    "Tối ưu lại thuật toán full solution bằng Segment Tree"
+  ];
+
   return (
     <div className="space-y-6">
       {/* Top action header */}
-      <div className="bg-slate-900 rounded-2xl p-5 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg border border-slate-800">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 bg-indigo-600 text-[10px] font-bold rounded-full uppercase tracking-wider">LQDOJ Setter</span>
-            <span className="text-sm font-mono text-slate-400">★ Rating {problem.rating}</span>
+      <div className="bg-slate-900 rounded-3xl p-6 text-white shadow-xl border border-slate-800 relative overflow-hidden">
+        {/* Glow accent */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="px-2.5 py-0.5 bg-indigo-600 text-white text-[10px] font-extrabold rounded-full uppercase tracking-wider shadow-sm">
+                LQDOJ Standard
+              </span>
+              <span className="px-2.5 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold font-mono rounded-full flex items-center gap-1">
+                <Trophy className="w-3 h-3 text-amber-400" />
+                Rating {problem.rating}
+              </span>
+              <span className="px-2.5 py-0.5 bg-slate-800 text-slate-300 border border-slate-700 text-xs font-semibold rounded-full">
+                {problem.category}
+              </span>
+            </div>
+
+            <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+              {problem.title}
+            </h2>
+
+            {/* Quick stats pills */}
+            <div className="flex flex-wrap items-center gap-3 pt-1 text-xs text-slate-300 font-medium">
+              <span className="flex items-center gap-1.5 bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-700/80">
+                <Layers className="w-3.5 h-3.5 text-indigo-400" />
+                {problem.solutions.length} Subtasks
+              </span>
+              <span className="flex items-center gap-1.5 bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-700/80">
+                <Cpu className="w-3.5 h-3.5 text-emerald-400" />
+                {scriptLines} Testcases tự động
+              </span>
+              {problem.checker && (
+                <span className="flex items-center gap-1.5 bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-700/80 text-amber-300">
+                  <CheckSquare className="w-3.5 h-3.5 text-amber-400" />
+                  Custom Checker
+                </span>
+              )}
+            </div>
           </div>
-          <h2 className="text-2xl font-extrabold tracking-tight mt-1 bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
-            {problem.title}
-          </h2>
-          <p className="text-xs text-slate-400 mt-0.5">Chủ đề chính: <span className="text-indigo-400 font-semibold">{problem.category}</span></p>
-        </div>
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <button
-            onClick={handleCopyStatement}
-            className="flex-1 sm:flex-none py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-100 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 border border-slate-700 cursor-pointer"
-          >
-            {copiedStatement ? (
-              <>
-                <Check className="w-4 h-4 text-emerald-400" />
-                <span className="text-emerald-400">Đã copy Đề bài</span>
-              </>
-            ) : (
-              <>
-                <Copy className="w-4 h-4" />
-                <span>Copy Markdown</span>
-              </>
-            )}
-          </button>
-          <button
-            onClick={handleDownloadZip}
-            className="flex-1 sm:flex-none py-2.5 px-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-950/20 hover:shadow-indigo-900/40 cursor-pointer"
-          >
-            <FolderDown className="w-4 h-4" />
-            <span>Tải trọn bộ ZIP</span>
-          </button>
+
+          {/* Action buttons */}
+          <div className="flex items-center gap-3 w-full lg:w-auto">
+            <button
+              type="button"
+              onClick={handleCopyStatement}
+              className="flex-1 lg:flex-none py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-100 rounded-xl font-semibold text-xs transition-all flex items-center justify-center gap-2 border border-slate-700 shadow-xs cursor-pointer active:scale-95"
+            >
+              {copiedStatement ? (
+                <>
+                  <Check className="w-4 h-4 text-emerald-400" />
+                  <span className="text-emerald-400 font-bold">Đã sao chép</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-4 h-4 text-slate-300" />
+                  <span>Sao chép Markdown</span>
+                </>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleDownloadZip}
+              className="flex-1 lg:flex-none py-2.5 px-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30 hover:shadow-indigo-600/50 cursor-pointer active:scale-95"
+            >
+              <FolderDown className="w-4 h-4" />
+              <span>Tải trọn bộ .ZIP</span>
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Main layout with Sidebar Tabs and Content Box */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left column: tabs */}
+        {/* Left column: Navigation Tabs */}
         <div className="lg:col-span-3 space-y-2">
           <button
+            type="button"
             onClick={() => setActiveTab('statement')}
-            className={`w-full p-4 rounded-xl flex items-center gap-3 transition-all text-left border ${
+            className={`w-full p-3.5 rounded-2xl flex items-center gap-3 transition-all text-left border cursor-pointer ${
               activeTab === 'statement'
-                ? "bg-white text-indigo-950 border-slate-200 shadow-sm font-bold ring-2 ring-indigo-50/50"
-                : "bg-slate-50/50 text-slate-600 border-transparent hover:bg-slate-50 hover:text-slate-900"
+                ? "bg-white text-indigo-950 border-indigo-200 shadow-sm font-bold ring-1 ring-indigo-500/20"
+                : "bg-white/60 text-slate-600 border-slate-200/80 hover:bg-white hover:text-slate-900"
             }`}
           >
-            <BookOpen className={`w-5 h-5 ${activeTab === 'statement' ? "text-indigo-600" : "text-slate-400"}`} />
+            <div className={`p-2 rounded-xl shrink-0 ${activeTab === 'statement' ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-500"}`}>
+              <BookOpen className="w-4 h-4" />
+            </div>
             <div className="flex-1 min-w-0">
-              <div className="text-sm">Đề bài (Markdown)</div>
-              <div className="text-[10px] text-slate-400 font-normal truncate">Bản dịch LQDOJ chuẩn</div>
+              <div className="text-xs font-bold">Đề bài (Markdown)</div>
+              <div className="text-[10px] text-slate-400 font-normal truncate">Định dạng MkDocs chuẩn LQDOJ</div>
             </div>
             <ChevronRight className="w-4 h-4 text-slate-300" />
           </button>
 
           <button
+            type="button"
             onClick={() => setActiveTab('generator')}
-            className={`w-full p-4 rounded-xl flex items-center gap-3 transition-all text-left border ${
+            className={`w-full p-3.5 rounded-2xl flex items-center gap-3 transition-all text-left border cursor-pointer ${
               activeTab === 'generator'
-                ? "bg-white text-indigo-950 border-slate-200 shadow-sm font-bold ring-2 ring-indigo-50/50"
-                : "bg-slate-50/50 text-slate-600 border-transparent hover:bg-slate-50 hover:text-slate-900"
+                ? "bg-white text-indigo-950 border-indigo-200 shadow-sm font-bold ring-1 ring-indigo-500/20"
+                : "bg-white/60 text-slate-600 border-slate-200/80 hover:bg-white hover:text-slate-900"
             }`}
           >
-            <Settings2 className={`w-5 h-5 ${activeTab === 'generator' ? "text-indigo-600" : "text-slate-400"}`} />
+            <div className={`p-2 rounded-xl shrink-0 ${activeTab === 'generator' ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-500"}`}>
+              <Settings2 className="w-4 h-4" />
+            </div>
             <div className="flex-1 min-w-0">
-              <div className="text-sm">Bộ sinh Test (C++)</div>
-              <div className="text-[10px] text-slate-400 font-normal truncate">Sử dụng testlib.h sinh ngẫu nhiên</div>
+              <div className="text-xs font-bold">Bộ sinh Test & Script</div>
+              <div className="text-[10px] text-slate-400 font-normal truncate">generator.cpp + {scriptLines} dòng test</div>
             </div>
             <ChevronRight className="w-4 h-4 text-slate-300" />
           </button>
 
           <button
+            type="button"
             onClick={() => setActiveTab('solutions')}
-            className={`w-full p-4 rounded-xl flex items-center gap-3 transition-all text-left border ${
+            className={`w-full p-3.5 rounded-2xl flex items-center gap-3 transition-all text-left border cursor-pointer ${
               activeTab === 'solutions'
-                ? "bg-white text-indigo-950 border-slate-200 shadow-sm font-bold ring-2 ring-indigo-50/50"
-                : "bg-slate-50/50 text-slate-600 border-transparent hover:bg-slate-50 hover:text-slate-900"
+                ? "bg-white text-indigo-950 border-indigo-200 shadow-sm font-bold ring-1 ring-indigo-500/20"
+                : "bg-white/60 text-slate-600 border-slate-200/80 hover:bg-white hover:text-slate-900"
             }`}
           >
-            <FileCode2 className={`w-5 h-5 ${activeTab === 'solutions' ? "text-indigo-600" : "text-slate-400"}`} />
+            <div className={`p-2 rounded-xl shrink-0 ${activeTab === 'solutions' ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-500"}`}>
+              <FileCode2 className="w-4 h-4" />
+            </div>
             <div className="flex-1 min-w-0">
-              <div className="text-sm">Lời giải mẫu (Solutions)</div>
-              <div className="text-[10px] text-slate-400 font-normal truncate">{problem.solutions.length} thuật toán mẫu khác nhau</div>
+              <div className="text-xs font-bold">Lời giải mẫu ({problem.solutions.length})</div>
+              <div className="text-[10px] text-slate-400 font-normal truncate">Mã nguồn C++ cho từng subtask</div>
             </div>
             <ChevronRight className="w-4 h-4 text-slate-300" />
           </button>
 
           {(problem.checker || problem.interactive) && (
             <button
+              type="button"
               onClick={() => setActiveTab('checker')}
-              className={`w-full p-4 rounded-xl flex items-center gap-3 transition-all text-left border ${
+              className={`w-full p-3.5 rounded-2xl flex items-center gap-3 transition-all text-left border cursor-pointer ${
                 activeTab === 'checker'
-                  ? "bg-white text-indigo-950 border-slate-200 shadow-sm font-bold ring-2 ring-indigo-50/50"
-                  : "bg-slate-50/50 text-slate-600 border-transparent hover:bg-slate-50 hover:text-slate-900"
+                  ? "bg-white text-indigo-950 border-indigo-200 shadow-sm font-bold ring-1 ring-indigo-500/20"
+                  : "bg-white/60 text-slate-600 border-slate-200/80 hover:bg-white hover:text-slate-900"
               }`}
             >
-              <CheckSquare className={`w-5 h-5 ${activeTab === 'checker' ? "text-indigo-600" : "text-slate-400"}`} />
+              <div className={`p-2 rounded-xl shrink-0 ${activeTab === 'checker' ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-500"}`}>
+                <CheckSquare className="w-4 h-4" />
+              </div>
               <div className="flex-1 min-w-0">
-                <div className="text-sm">Trình chấm đặc biệt (C++)</div>
-                <div className="text-[10px] text-slate-400 font-normal truncate">{problem.checker ? "Special Checker" : "Interactive Manager"}</div>
+                <div className="text-xs font-bold">Trình chấm đặc biệt</div>
+                <div className="text-[10px] text-slate-400 font-normal truncate">Checker & Interactor C++</div>
               </div>
               <ChevronRight className="w-4 h-4 text-slate-300" />
             </button>
           )}
 
           <button
+            type="button"
             onClick={() => setActiveTab('analysis')}
-            className={`w-full p-4 rounded-xl flex items-center gap-3 transition-all text-left border ${
+            className={`w-full p-3.5 rounded-2xl flex items-center gap-3 transition-all text-left border cursor-pointer ${
               activeTab === 'analysis'
-                ? "bg-white text-indigo-950 border-slate-200 shadow-sm font-bold ring-2 ring-indigo-50/50"
-                : "bg-slate-50/50 text-slate-600 border-transparent hover:bg-slate-50 hover:text-slate-900"
+                ? "bg-white text-indigo-950 border-indigo-200 shadow-sm font-bold ring-1 ring-indigo-500/20"
+                : "bg-white/60 text-slate-600 border-slate-200/80 hover:bg-white hover:text-slate-900"
             }`}
           >
-            <Lightbulb className={`w-5 h-5 ${activeTab === 'analysis' ? "text-indigo-600" : "text-slate-400"}`} />
+            <div className={`p-2 rounded-xl shrink-0 ${activeTab === 'analysis' ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-500"}`}>
+              <Lightbulb className="w-4 h-4" />
+            </div>
             <div className="flex-1 min-w-0">
-              <div className="text-sm">Phân tích thuật toán</div>
-              <div className="text-[10px] text-slate-400 font-normal truncate">Ý tưởng giải bài & lời khuyên</div>
+              <div className="text-xs font-bold">Phân tích thuật toán</div>
+              <div className="text-[10px] text-slate-400 font-normal truncate">Editorial & Hướng tiếp cận</div>
             </div>
             <ChevronRight className="w-4 h-4 text-slate-300" />
           </button>
         </div>
 
-        {/* Right column: content */}
-        <div className="lg:col-span-9 bg-white rounded-2xl border border-slate-100 p-6 shadow-sm min-h-[500px]">
+        {/* Right column: Content panel */}
+        <div className="lg:col-span-9 bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-sm min-h-[500px]">
+          {/* TAB 1: STATEMENT */}
           {activeTab === 'statement' && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
-                <h3 className="text-lg font-bold text-slate-800">Đề bài (Định dạng hiển thị)</h3>
-                <span className="text-xs bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full font-semibold">Cốt truyện đầy đủ</span>
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-indigo-600" />
+                  Đề bài chính thức
+                </h3>
+                <span className="text-[11px] bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full font-semibold border border-slate-200">
+                  Chuẩn LQDOJ Markdown
+                </span>
               </div>
               <div className="prose max-w-none">
                 <LqdojMarkdown content={problem.problemStatement} />
@@ -256,58 +333,74 @@ CÁCH SỬ DỤNG TRÌNH SINH TEST (generator.cpp) VÀ SCRIPT:
             </div>
           )}
 
+          {/* TAB 2: GENERATOR & SCRIPT */}
           {activeTab === 'generator' && (
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div>
-                  <h3 className="text-lg font-bold text-slate-800">Bộ sinh dữ liệu (testcase generator)</h3>
-                  <p className="text-xs text-slate-400 mt-0.5">Sử dụng chương trình C++ sinh dữ liệu và kịch bản sinh test (Script)</p>
+                  <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                    <Settings2 className="w-4 h-4 text-indigo-600" />
+                    Bộ sinh testcase & Kịch bản tự động
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">Sinh testcase độc lập với seed ngẫu nhiên</p>
                 </div>
               </div>
               
-              <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 leading-relaxed space-y-1">
-                <p className="font-bold">💡 Hướng dẫn sinh test tự động chuẩn:</p>
-                <p>1. <strong>Chương trình generator.cpp:</strong> Nhận các tham số ràng buộc cộng thêm seed; in input ra <code>stdout</code> và output mong đợi ra <code>stderr</code>.</p>
-                <p>2. Biên dịch generator.cpp bằng lệnh: <code>g++ -O3 generator.cpp -o generator</code></p>
-                <p>3. <strong>Script sinh test (100 dòng):</strong> Mỗi dòng bên dưới là tham số truyền vào lệnh <code>./generator [arg_1] [arg_2] ... [seed]</code> để tự động sinh lần lượt 100 testcase mạnh khác nhau, tránh trùng lặp.</p>
+              <div className="p-4 bg-indigo-50/70 border border-indigo-200/80 rounded-2xl text-xs text-indigo-950 leading-relaxed space-y-1.5">
+                <p className="font-bold flex items-center gap-1 text-indigo-900">
+                  <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                  Cơ chế sinh test tự động:
+                </p>
+                <p>1. <strong>Chương trình generator.cpp:</strong> Nhận các tham số ràng buộc cộng thêm seed; in input ra <code>stdout</code> và output ra <code>stderr</code>.</p>
+                <p>2. Biên dịch: <code>g++ -O3 generator.cpp -o generator</code></p>
+                <p>3. <strong>Kịch bản script.txt ({scriptLines} testcases):</strong> Tự động cấp phát tham số từ nhỏ đến lớn cho {scriptLines} testcase không bị trùng lặp.</p>
               </div>
 
               <div className="space-y-2">
-                <h4 className="text-sm font-bold text-slate-700">1. Mã nguồn generator.cpp</h4>
+                <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">1. Mã nguồn sinh test: generator.cpp</h4>
                 <CodeBlock code={problem.testGenerator} filename="generator.cpp" />
               </div>
 
               {problem.generatorScript && (
                 <div className="space-y-2 pt-4 border-t border-slate-100">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-bold text-slate-700">2. Kịch bản sinh test (Script sinh test gồm 100 testcase)</h4>
-                    <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded-full">100 dòng test</span>
+                    <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                      2. Kịch bản sinh test: script.txt ({scriptLines} testcases)
+                    </h4>
+                    <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded-full border border-emerald-200">
+                      {scriptLines} dòng test
+                    </span>
                   </div>
-                  <p className="text-xs text-slate-500">Mỗi dòng là các tham số cho một testcase chạy với generator. Dòng cuối cùng là hạt giống (seed) thay đổi liên tục.</p>
+                  <p className="text-xs text-slate-500">Mỗi dòng tương ứng với 1 testcase, cột cuối cùng là hạt giống ngẫu nhiên (seed).</p>
                   <CodeBlock code={problem.generatorScript} filename="script.txt" />
                 </div>
               )}
             </div>
           )}
 
+          {/* TAB 3: SOLUTIONS */}
           {activeTab === 'solutions' && (
-            <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-100 pb-3 gap-2">
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-100 pb-3 gap-3">
                 <div>
-                  <h3 className="text-lg font-bold text-slate-800">Mã nguồn Lời giải (Solutions)</h3>
-                  <p className="text-xs text-slate-400 mt-0.5">Mã nguồn chuẩn tối ưu và duyệt trâu cho từng Subtask</p>
+                  <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                    <FileCode2 className="w-4 h-4 text-indigo-600" />
+                    Mã nguồn Lời giải mẫu (Solutions)
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">Lời giải mẫu C++ độc lập cho từng Subtask</p>
                 </div>
 
-                {/* Subtask selector */}
-                <div className="flex gap-1 bg-slate-100 p-1 rounded-lg">
+                {/* Subtask switcher buttons */}
+                <div className="flex flex-wrap gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
                   {problem.solutions.map((sol, idx) => (
                     <button
                       key={idx}
+                      type="button"
                       onClick={() => setActiveSolutionIdx(idx)}
-                      className={`px-3 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer ${
+                      className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                         activeSolutionIdx === idx
-                          ? "bg-white text-indigo-950 shadow-xs"
-                          : "text-slate-500 hover:text-slate-800"
+                          ? "bg-white text-indigo-950 shadow-xs ring-1 ring-slate-200"
+                          : "text-slate-600 hover:text-slate-900"
                       }`}
                     >
                       {sol.subtask}
@@ -318,10 +411,12 @@ CÁCH SỬ DỤNG TRÌNH SINH TEST (generator.cpp) VÀ SCRIPT:
 
               {problem.solutions[activeSolutionIdx] && (
                 <div className="space-y-4">
-                  <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
-                    <h4 className="text-sm font-bold text-indigo-950">{problem.solutions[activeSolutionIdx].subtask}</h4>
-                    <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                      <strong>Giải thuật:</strong> {problem.solutions[activeSolutionIdx].description}
+                  <div className="p-4 bg-slate-50 border border-slate-200/90 rounded-2xl">
+                    <h4 className="text-xs font-extrabold text-indigo-950 uppercase tracking-wider">
+                      {problem.solutions[activeSolutionIdx].subtask}
+                    </h4>
+                    <p className="text-xs text-slate-700 mt-1 leading-relaxed">
+                      <strong>Ý tưởng giải thuật:</strong> {problem.solutions[activeSolutionIdx].description}
                     </p>
                   </div>
                   <CodeBlock 
@@ -333,36 +428,48 @@ CÁCH SỬ DỤNG TRÌNH SINH TEST (generator.cpp) VÀ SCRIPT:
             </div>
           )}
 
+          {/* TAB 4: CHECKER */}
           {activeTab === 'checker' && (
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div className="border-b border-slate-100 pb-3">
-                <h3 className="text-lg font-bold text-slate-800">
+                <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                  <CheckSquare className="w-4 h-4 text-indigo-600" />
                   {problem.checker ? "Trình chấm đặc biệt (Special Checker)" : "Trình tương tác (Interactive Manager)"}
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">
                   {problem.checker 
-                    ? "Dùng khi bài toán có nhiều đáp án hợp lệ khác nhau." 
-                    : "Dùng để tương tác và hỏi đáp trực tiếp với chương trình học sinh."}
+                    ? "Dùng khi bài toán có nhiều đáp án hợp lệ hoặc cho điểm thành phần." 
+                    : "Dùng để giao tiếp trực tiếp với chương trình của thí sinh."}
                 </p>
               </div>
 
               {problem.checker && (
-                <CodeBlock code={problem.checker} filename="checker.cpp" />
+                <div className="space-y-2">
+                  <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Mã nguồn checker.cpp</h4>
+                  <CodeBlock code={problem.checker} filename="checker.cpp" />
+                </div>
               )}
 
               {problem.interactive && (
-                <CodeBlock code={problem.interactive} filename="interactive.cpp" />
+                <div className="space-y-2">
+                  <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Mã nguồn interactive.cpp</h4>
+                  <CodeBlock code={problem.interactive} filename="interactive.cpp" />
+                </div>
               )}
             </div>
           )}
 
+          {/* TAB 5: ANALYSIS */}
           {activeTab === 'analysis' && (
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div className="border-b border-slate-100 pb-3">
-                <h3 className="text-lg font-bold text-slate-800">Phân tích thuật toán & Editorial</h3>
-                <p className="text-xs text-slate-400 mt-0.5">Phân tích kỹ lưỡng các hướng giải và tối ưu bộ nhớ/thời gian</p>
+                <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                  <Lightbulb className="w-4 h-4 text-indigo-600" />
+                  Phân tích thuật toán & Hướng dẫn giải (Editorial)
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">Tài liệu chi tiết dành cho giáo viên và học sinh</p>
               </div>
-              <div className="bg-slate-50/50 p-6 border border-slate-200 rounded-xl text-slate-700 leading-relaxed text-sm whitespace-pre-line font-medium">
+              <div className="bg-slate-50/70 p-6 border border-slate-200/90 rounded-2xl text-slate-800 leading-relaxed text-xs sm:text-sm whitespace-pre-line font-medium">
                 {problem.analysis}
               </div>
             </div>
@@ -371,39 +478,65 @@ CÁCH SỬ DỤNG TRÌNH SINH TEST (generator.cpp) VÀ SCRIPT:
       </div>
 
       {/* Refinement Prompts Box (Iterative update) */}
-      <div className="bg-indigo-50/30 border border-indigo-100/80 rounded-2xl p-6 shadow-xs">
-        <div className="flex items-center gap-2 mb-3">
-          <Sparkles className="w-5 h-5 text-indigo-600" />
-          <h3 className="font-bold text-slate-800 text-sm">Chỉnh sửa đề bài hoặc bộ test với AI (Gemma 4)</h3>
+      <div className="bg-gradient-to-br from-indigo-50/70 via-slate-50 to-purple-50/50 border border-indigo-100 rounded-3xl p-6 sm:p-8 shadow-xs space-y-4">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-200">
+            <Wand2 className="w-4 h-4" />
+          </div>
+          <div>
+            <h3 className="font-extrabold text-slate-900 text-sm sm:text-base">
+              Yêu cầu AI tinh chỉnh hoặc bổ sung đề bài
+            </h3>
+            <p className="text-xs text-slate-500">
+              Nhập yêu cầu sửa đổi (VD: thay đổi giới hạn, sửa cốt truyện, viết thêm subtask...)
+            </p>
+          </div>
         </div>
-        <p className="text-xs text-slate-500 mb-4 leading-relaxed">
-          Bạn chưa hài lòng với khía cạnh nào? Ví dụ: <em>"Hãy đổi tên nhân vật thành Tèo và Tý"</em>, <em>"Hãy tăng giới hạn của Subtask 2 lên $5 \cdot 10^5$"</em>, hoặc <em>"Sửa lại cốt truyện cho hài hước hơn"</em>. AI sẽ sửa đổi trực tiếp trên bản thiết kế hiện tại!
-        </p>
 
-        <form onSubmit={handleRefineSubmit} className="flex gap-2">
+        {/* Quick prompt suggestions */}
+        <div className="flex flex-wrap items-center gap-1.5 pt-1">
+          <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1">
+            <Sparkles className="w-3 h-3 text-indigo-500" /> Gợi ý nhanh:
+          </span>
+          {QUICK_REFINE_PROMPTS.map((prompt, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => setRefineFeedback(prompt)}
+              className="text-[11px] bg-white hover:bg-indigo-50 text-slate-700 hover:text-indigo-800 border border-slate-200 hover:border-indigo-200 px-2.5 py-1 rounded-full transition-all cursor-pointer shadow-2xs font-medium"
+            >
+              {prompt}
+            </button>
+          ))}
+        </div>
+
+        <form onSubmit={handleRefineSubmit} className="flex flex-col sm:flex-row gap-2 pt-2">
           <input
             type="text"
             value={refineFeedback}
             onChange={(e) => setRefineFeedback(e.target.value)}
             disabled={refining}
-            placeholder={refining ? "Đang gửi phản hồi chỉnh sửa..." : "Gửi yêu cầu chỉnh sửa đề bài cho AI..."}
-            className="flex-1 px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm font-medium transition-all"
+            placeholder={refining ? "Đang xử lý yêu cầu tinh chỉnh..." : "Ví dụ: 'Hãy tăng giới hạn N lên 2*10^5 và cập nhật code solution tương ứng'..."}
+            className="flex-1 px-4 py-3 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 text-xs sm:text-sm font-medium transition-all shadow-inner"
           />
           <button
             type="submit"
             disabled={!refineFeedback.trim() || refining}
-            className={`px-5 py-3 rounded-xl font-bold text-white transition-all flex items-center justify-center gap-2 cursor-pointer ${
+            className={`px-6 py-3 rounded-2xl font-bold text-xs sm:text-sm text-white transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md shrink-0 ${
               !refineFeedback.trim() || refining
-                ? "bg-slate-300 cursor-not-allowed"
-                : "bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-100"
+                ? "bg-slate-300 shadow-none cursor-not-allowed"
+                : "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200 active:scale-95"
             }`}
           >
             {refining ? (
-              <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+              <>
+                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                <span>Đang tinh chỉnh...</span>
+              </>
             ) : (
               <>
                 <Send className="w-4 h-4" />
-                <span className="hidden sm:inline">Gửi yêu cầu</span>
+                <span>Gửi tinh chỉnh</span>
               </>
             )}
           </button>
@@ -412,3 +545,4 @@ CÁCH SỬ DỤNG TRÌNH SINH TEST (generator.cpp) VÀ SCRIPT:
     </div>
   );
 };
+

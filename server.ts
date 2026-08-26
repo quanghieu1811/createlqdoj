@@ -10,6 +10,11 @@ const PORT = 3000;
 
 app.use(express.json({ limit: "50mb" }));
 
+// Health check endpoint
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok" });
+});
+
 // Helper to resolve client-specified model to official API model
 const resolveModel = (clientModel?: string) => {
   if (!clientModel || !clientModel.trim()) {
@@ -21,7 +26,8 @@ const resolveModel = (clientModel?: string) => {
 };
 
 // Helper to build cohesive system instructions reflecting user guidelines and platform requirements
-const buildSystemInstruction = (rating: any, category: any) => {
+const buildSystemInstruction = (rating: any, category: any, testCount: number = 100) => {
+  const count = testCount && testCount >= 5 && testCount <= 200 ? testCount : 100;
   return `Bạn đóng vai trò là một "Gemma 4 31B IT" - Mô hình ngôn ngữ lớn chuyên gia thiết kế đề thi lập trình thi đấu (Problem Setter) kỳ cựu trên nền tảng LQDOJ (Lê Quý Đôn Online Judge).
 Nhiệm vụ của bạn là thiết kế một bài tập lập trình hoàn chỉnh, chuyên nghiệp và có độ chính xác khoa học tuyệt đối, nhắm tới độ khó rating ${rating || 1400} và chủ đề "${category || "Dynamic Programming"}".
 
@@ -56,7 +62,7 @@ YÊU CẦU CHI TIẾT CỦA CÁC THÀNH PHẦN:
 - Generator phải:
   - In dữ liệu đầu vào (input) ra stdout (cout).
   - In dữ liệu đầu ra mong đợi (lời giải/đáp án chuẩn) ra stderr (cerr).
-- Bạn phải cung cấp kịch bản sinh test "generatorScript" gồm ĐÚNG 100 dòng tương ứng với 100 testcases mạnh khác nhau. Mỗi dòng chứa các tham số truyền vào lệnh ./generator, kết thúc bằng một seed thay đổi liên tục cho mỗi testcase (để tránh trùng lặp). Dải tham số trên 100 dòng phải phân bố đều từ các giới hạn cực nhỏ (cho Subtask 1) đến giới hạn tối đa cực lớn (cho Subtask cuối).
+- Bạn phải cung cấp kịch bản sinh test "generatorScript" gồm ĐÚNG ${count} dòng tương ứng với ${count} testcases mạnh khác nhau. Mỗi dòng chứa các tham số truyền vào lệnh ./generator, kết thúc bằng một seed thay đổi liên tục cho mỗi testcase (để tránh trùng lặp). Dải tham số trên ${count} dòng phải phân bố đều từ các giới hạn cực nhỏ (cho Subtask 1) đến giới hạn tối đa cực lớn (cho Subtask cuối).
 
 3. CUSTOM CHECKER (checker) [C++]:
 - Nếu đề bài thuộc thể loại 'checker' (nhiều đáp án đúng hoặc định dạng chấm điểm đặc biệt), bạn phải viết một chương trình checker hoàn chỉnh bằng C++ chạy dạng:
@@ -89,7 +95,7 @@ YÊU CẦU CHI TIẾT CỦA CÁC THÀNH PHẦN:
 // API endpoint to generate or refine LQDOJ problem
 app.post("/api/generate", async (req, res) => {
   try {
-    const { rating, category, briefIdea, problemType, previousProblem, feedback, apiKey, model } = req.body;
+    const { rating, category, briefIdea, problemType, previousProblem, feedback, apiKey, model, testCount } = req.body;
     const keyHeader = req.headers["x-gemini-api-key"] as string;
     const selectedModelHeader = req.headers["x-selected-model"] as string;
 
@@ -97,6 +103,8 @@ app.post("/api/generate", async (req, res) => {
     if (!resolvedKey) {
       return res.status(400).json({ error: "Không tìm thấy API Key. Vui lòng cung cấp Gemini API Key." });
     }
+
+    const finalTestCount = testCount && testCount >= 5 && testCount <= 200 ? testCount : 100;
 
     const ai = new GoogleGenAI({
       apiKey: resolvedKey,
@@ -108,7 +116,7 @@ app.post("/api/generate", async (req, res) => {
     });
 
     const targetModel = resolveModel(selectedModelHeader || model);
-    const systemInstruction = buildSystemInstruction(rating, category);
+    const systemInstruction = buildSystemInstruction(rating, category, finalTestCount);
 
     let userPrompt = "";
 
@@ -130,6 +138,7 @@ Hãy CHỈNH SỬA VÀ CẬP NHẬT bài toán này dựa trên phản hồi c�
 
 LƯU Ý KHI CHỈNH SỬA:
 - Giữ nguyên các phần không bị yêu cầu thay đổi để đảm bảo tính nhất quán.
+- Kịch bản generatorScript gồm đúng ${finalTestCount} dòng testcase tương ứng.
 - Nếu người dùng yêu cầu chỉnh sửa giới hạn, hãy cập nhật tương ứng ở cả Đề bài, Trình sinh test (generator.cpp) và phần Phân tích thuật toán.
 - Đảm bảo mã nguồn C++ (giải thuật mẫu và trình sinh test) vẫn hoàn toàn chính xác và biên dịch được sau khi sửa đổi.
 - Trả về đối tượng JSON đầy đủ sau khi đã sửa đổi.`;
@@ -142,6 +151,7 @@ LƯU Ý KHI CHỈNH SỬA:
 - Độ khó (Rating): ${rating}
 - Chủ đề: ${category}
 - Thể loại bài: ${problemType}
+- Số lượng testcase sinh tự động: ${finalTestCount} testcases (kịch bản generatorScript gồm đúng ${finalTestCount} dòng tham số)
 ${briefIdea ? `- Ý tưởng sơ lược hoặc gợi ý từ người dùng: ${briefIdea}` : "- Hãy tự sáng tạo ra một bài tập độc đáo, thú vị và phát biểu toán học trực tiếp (tuyệt đối không viết cốt truyện) phù hợp với rating và chủ đề này."}
 
 Hãy trả về kết quả hoàn toàn dưới dạng JSON tuân thủ đúng cấu trúc schema yêu cầu.`;
@@ -168,7 +178,7 @@ Hãy trả về kết quả hoàn toàn dưới dạng JSON tuân thủ đúng c
           },
           generatorScript: { 
             type: Type.STRING, 
-            description: "Script sinh test gồm đúng 100 dòng tương ứng với 100 testcases mạnh khác nhau. Mỗi dòng chứa các tham số truyền cho generator, cột cuối cùng là seed ngẫu nhiên thay đổi liên tục." 
+            description: `Script sinh test gồm đúng ${finalTestCount} dòng tương ứng với ${finalTestCount} testcases mạnh khác nhau. Mỗi dòng chứa các tham số truyền cho generator, cột cuối cùng là seed ngẫu nhiên thay đổi liên tục.` 
           },
           checker: { 
             type: Type.STRING, 
@@ -404,7 +414,9 @@ async function startServer() {
 }
 
 if (!process.env.VERCEL) {
-  startServer();
+  startServer().catch((err) => {
+    console.error("Failed to start server:", err);
+  });
 }
 
 export default app;
