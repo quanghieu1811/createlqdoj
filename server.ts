@@ -52,6 +52,10 @@ YÊU CẦU CHI TIẾT CỦA CÁC THÀNH PHẦN:
             \`\`\`
         ??? warning "Note"
             [Giải thích nếu cần]
+- Nếu bài thuộc thể loại 'ioi' (IOI Signature / Cài đặt hàm):
+  + Trong đề bài, hãy nêu rõ: Thí sinh cần cài đặt hàm (tên hàm, tham số, kiểu trả về) thay vì đọc/ghi luồng chuẩn.
+  + Trình bày rõ ràng giao diện hàm cho cả C/C++ và Python.
+  + Trong phần Ví dụ, mô tả chi tiết các lời gọi hàm mẫu và giá trị trả về.
 - Phần Scoring (Chấm điểm) phải chia thành các Subtask rõ ràng phù hợp với độ khó và phân bố điểm.
 - Sử dụng ký hiệu Toán học bằng LaTeX (kẹp giữa dấu $) như $1 \\le N \\le 10^5$. Hãy chắc chắn dấu gạch chéo ngược được escape đúng trong JSON (dùng \\\\ thay vì \\).
 
@@ -85,10 +89,24 @@ YÊU CẦU CHI TIẾT CỦA CÁC THÀNH PHẦN:
   Mọi dữ liệu ghi ra stderr sẽ được hiển thị làm feedback cho học sinh.
 - Nếu không phải thể loại 'interactive', hãy đặt trường này là null.
 
-5. SOLUTIONS (solutions):
-- Cung cấp ít nhất 2 giải thuật hoàn chỉnh bằng C++ cho các subtask khác nhau (suboptimal duyệt trâu và optimal tối ưu hoàn toàn).
+5. IOI SIGNATURE (ioi):
+- Nếu đề bài thuộc thể loại 'ioi' (Dạng bài nộp bằng hàm như IOI / Grader), bạn PHẢI cung cấp đầy đủ đối tượng 'ioi':
+  + functionSignatureCpp: Khai báo hàm C++ (ví dụ: long long solve(long long n);)
+  + functionSignaturePy: Khai báo hàm Python (ví dụ: def solve(n: int) -> int:)
+  + headerH: File header (header.h) cho C/C++ có include guard (#ifndef _HEADER_INCLUDED...)
+  + handlerCpp: File handler.cpp C++ đọc input từ stdin, gọi hàm của thí sinh, in output ra stdout
+  + handlerPy: File handler.py Python import hàm từ _submission (ví dụ: from _submission import solve), đọc input, gọi hàm, in output ra stdout
+  + contestantStubCpp: File stub.cpp mẫu khung code C++ cho thí sinh
+  + contestantStubPy: File stub.py mẫu khung code Python cho thí sinh
+- Nếu không phải thể loại 'ioi', hãy đặt trường này là null.
 
-6. PHÂN TÍCH (analysis):
+6. SOLUTIONS (solutions):
+- BẮT BUỘC: Có bao nhiêu Subtask được định nghĩa trong Đề bài, bạn PHẢI viết đúng bấy nhiêu lời giải/giải thuật mẫu độc lập tương ứng vào mảng "solutions".
+- Với bài dạng 'ioi', mã nguồn trong "solutions" PHẢI cài đặt hàm theo đúng chữ ký IOI Signature (không chứa hàm main).
+- Với bài dạng thông thường, mã nguồn C++ có hàm main() hoàn chỉnh.
+- CẤM TUYỆT ĐỐI KHÔNG SỬ DỤNG #pragma trong bất kỳ mã nguồn lời giải nào.
+
+7. PHÂN TÍCH (analysis):
 - Viết phân tích/editorial chi tiết bằng tiếng Việt giải thích ý tưởng giải bài.`;
 };
 
@@ -187,6 +205,20 @@ Hãy trả về kết quả hoàn toàn dưới dạng JSON tuân thủ đúng c
           interactive: { 
             type: Type.STRING, 
             description: "Mã nguồn C++ interactive.cpp chạy dưới dạng ./main <input_file> <answer_file> (nullable)" 
+          },
+          ioi: {
+            type: Type.OBJECT,
+            description: "Cấu hình chấm bài theo dạng hàm (IOI Signature / Grader). BẮT BUỘC có khi problemType là 'ioi'. Nếu không phải 'ioi', đặt là null.",
+            properties: {
+              functionSignatureCpp: { type: Type.STRING, description: "Khai báo hàm C++ (ví dụ: long long solve(long long n);)" },
+              functionSignaturePy: { type: Type.STRING, description: "Khai báo hàm Python (ví dụ: def solve(n: int) -> int:)" },
+              headerH: { type: Type.STRING, description: "File header.h hoàn chỉnh có include guard (#ifndef _HEADER_INCLUDED...)" },
+              handlerCpp: { type: Type.STRING, description: "File handler.cpp C++ đọc stdin, gọi hàm của thí sinh, in output ra stdout" },
+              handlerPy: { type: Type.STRING, description: "File handler.py Python import hàm từ _submission, đọc stdin, gọi hàm, in output ra stdout" },
+              contestantStubCpp: { type: Type.STRING, description: "Khung code stub.cpp C++ cho thí sinh tải về" },
+              contestantStubPy: { type: Type.STRING, description: "Khung code stub.py Python cho thí sinh tải về" }
+            },
+            required: ["functionSignatureCpp", "functionSignaturePy", "headerH", "handlerCpp", "handlerPy", "contestantStubCpp", "contestantStubPy"]
           },
           solutions: {
             type: Type.ARRAY,
@@ -310,6 +342,20 @@ Hãy trả về kết quả hoàn toàn dưới dạng JSON tuân thủ đúng c
           interactive: { 
             type: Type.STRING, 
             description: "Mã nguồn C++ interactive.cpp chạy dưới dạng ./main <input_file> <answer_file> (nullable)" 
+          },
+          ioi: {
+            type: Type.OBJECT,
+            description: "Cấu hình chấm bài theo dạng hàm (IOI Signature / Grader). BẮT BUỘC có khi problemType là 'ioi'. Nếu không phải 'ioi', đặt là null.",
+            properties: {
+              functionSignatureCpp: { type: Type.STRING, description: "Khai báo hàm C++ (ví dụ: long long solve(long long n);)" },
+              functionSignaturePy: { type: Type.STRING, description: "Khai báo hàm Python (ví dụ: def solve(n: int) -> int:)" },
+              headerH: { type: Type.STRING, description: "File header.h hoàn chỉnh có include guard (#ifndef _HEADER_INCLUDED...)" },
+              handlerCpp: { type: Type.STRING, description: "File handler.cpp C++ đọc stdin, gọi hàm của thí sinh, in output ra stdout" },
+              handlerPy: { type: Type.STRING, description: "File handler.py Python import hàm từ _submission, đọc stdin, gọi hàm, in output ra stdout" },
+              contestantStubCpp: { type: Type.STRING, description: "Khung code stub.cpp C++ cho thí sinh tải về" },
+              contestantStubPy: { type: Type.STRING, description: "Khung code stub.py Python cho thí sinh tải về" }
+            },
+            required: ["functionSignatureCpp", "functionSignaturePy", "headerH", "handlerCpp", "handlerPy", "contestantStubCpp", "contestantStubPy"]
           },
           solutions: {
             type: Type.ARRAY,

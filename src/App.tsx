@@ -118,6 +118,10 @@ YÊU CẦU CHI TIẾT CỦA CÁC THÀNH PHẦN:
 
 - QUY TẮC BẮT BUỘC VỀ ĐỊNH DẠNG:
   + Dùng đúng 4 mục tiêu đề level 4: \`#### Input\`, \`#### Output\`, \`#### Example\`, \`#### Scoring\`.
+  + Nếu thể loại bài là 'ioi' (IOI Signature / Cài đặt hàm):
+    * Trong đề bài, nêu rõ: Thí sinh cài đặt hàm (tên hàm, các tham số đầu vào, kiểu dữ liệu trả về) cho cả C/C++ và Python thay vì nhập/xuất từ stdin/stdout.
+    * Giải thích giao diện thư viện: C++ include header.h; Python được chấm qua file _submission.py.
+    * Phần ví dụ mô tả rõ các giá trị truyền vào hàm và kết quả hàm trả về.
   + Các ví dụ testcase phải dùng đúng cấu trúc khối thông báo MkDocs Admonition (\`!!! question "Test 1"\`, \`???+ "Input"\`, \`???+ success "Output"\`, \`??? warning "Note"\`).
   + Khối mã mẫu phải kẹp trong \`\`\`sample.
   + Sử dụng ký hiệu Toán học bằng LaTeX (kẹp giữa dấu $) như $1 \\le N \\le 10^5$. Hãy chắc chắn dấu gạch chéo ngược được escape đúng trong JSON (dùng \\\\ thay vì \\).
@@ -153,17 +157,25 @@ YÊU CẦU CHI TIẾT CỦA CÁC THÀNH PHẦN:
   Mọi dữ liệu ghi ra stderr sẽ được hiển thị làm feedback cho học sinh.
 - Nếu không phải thể loại 'interactive', hãy đặt trường này là null.
 
-5. SOLUTIONS (solutions):
-- BẮT BUỘC TUYỆT ĐỐI: Có bao nhiêu Subtask được định nghĩa trong Đề bài (problemStatement), bạn PHẢI viết đúng bấy nhiêu lời giải/giải thuật mẫu bằng C++ độc lập tương ứng vào mảng "solutions" này (Số lượng Subtask = Số lượng giải thuật trong mảng solutions).
-- CẤM TUYỆT ĐỐI KHÔNG SỬ DỤNG #pragma (như #pragma GCC optimize, #pragma GCC target, v.v.) trong bất kỳ mã nguồn lời giải (solutions) nào. Lời giải mẫu phải tuân thủ chuẩn C++ thuần túy và độ phức tạp thuật toán (được phép dùng Fast I/O như ios_base::sync_with_stdio(false); cin.tie(NULL);).
-- TUYỆT ĐỐI KHÔNG ĐƯỢC GỘP CHUNG các Subtask (ví dụ: không được tạo lời giải ghi "Subtask 1 & 2" hay "Subtask 2 & 3" chung một file C++). Mỗi phần tử trong mảng "solutions" chỉ được giải quyết đúng một Subtask cụ thể có trong đề bài.
-- Ví dụ, nếu Đề bài có 3 Subtask độc lập (Subtask 1, Subtask 2, Subtask 3 / Full Solution) thì mảng "solutions" PHẢI chứa đúng 3 phần tử C++ hoàn chỉnh tương ứng với từng Subtask một:
-  + Lời giải 1: Chỉ giải quyết Subtask 1 (ví dụ: Duyệt trâu / brute-force).
-  + Lời giải 2: Chỉ giải quyết Subtask 2 (ví dụ: Thuật toán tối ưu vừa phải).
-  + Lời giải 3: Giải quyết tối ưu hoàn toàn cho Subtask 3 / Full Solution.
-  Tuyệt đối không được gộp chung hay bỏ sót bất kỳ Subtask nào! Mỗi Subtask phải có riêng một lời giải độc lập trong mảng "solutions".
+5. IOI SIGNATURE (ioi):
+- Nếu đề bài thuộc thể loại 'ioi' (Dạng bài nộp bằng hàm như IOI / Grader), bạn PHẢI cung cấp đầy đủ đối tượng 'ioi':
+  + functionSignatureCpp: Khai báo hàm C++ (ví dụ: long long solve(long long n);)
+  + functionSignaturePy: Khai báo hàm Python (ví dụ: def solve(n: int) -> int:)
+  + headerH: File header (header.h) cho C/C++ có include guard (#ifndef _HEADER_INCLUDED...)
+  + handlerCpp: File handler.cpp C++ đọc input từ stdin, gọi hàm của thí sinh, in output ra stdout
+  + handlerPy: File handler.py Python import hàm từ _submission (ví dụ: from _submission import solve), đọc input, gọi hàm, in output ra stdout
+  + contestantStubCpp: File stub.cpp mẫu khung code C++ cho thí sinh
+  + contestantStubPy: File stub.py mẫu khung code Python cho thí sinh
+- Nếu không phải thể loại 'ioi', hãy đặt trường này là null.
 
-6. PHÂN TÍCH (analysis):
+6. SOLUTIONS (solutions):
+- BẮT BUỘC TUYỆT ĐỐI: Có bao nhiêu Subtask được định nghĩa trong Đề bài (problemStatement), bạn PHẢI viết đúng bấy nhiêu lời giải/giải thuật mẫu bằng C++ độc lập tương ứng vào mảng "solutions" này (Số lượng Subtask = Số lượng giải thuật trong mảng solutions).
+- Đối với bài thể loại 'ioi', mã nguồn trong "solutions" PHẢI cài đặt hàm theo đúng chữ ký IOI Signature (không chứa hàm main).
+- CẤM TUYỆT ĐỐI KHÔNG SỬ DỤNG #pragma (như #pragma GCC optimize, #pragma GCC target, v.v.) trong bất kỳ mã nguồn lời giải (solutions) nào. Lời giải mẫu phải tuân thủ chuẩn C++ thuần túy và độ phức tạp thuật toán (được phép dùng Fast I/O như ios_base::sync_with_stdio(false); cin.tie(NULL);).
+- TUYỆT ĐỐI KHÔNG ĐƯỢC GỘP CHUNG các Subtask.
+- Ví dụ, nếu Đề bài có 3 Subtask độc lập thì mảng "solutions" PHẢI chứa đúng 3 phần tử C++ hoàn chỉnh tương ứng với từng Subtask một.
+
+7. PHÂN TÍCH (analysis):
 - Viết phân tích/editorial chi tiết bằng tiếng Việt giải thích ý tưởng giải bài.`;
   };
 
@@ -232,9 +244,23 @@ YÊU CẦU CHI TIẾT CỦA CÁC THÀNH PHẦN:
                 type: "STRING", 
                 description: "Mã nguồn C++ interactive.cpp chạy dưới dạng ./main <input_file> <answer_file> (nullable)" 
               },
+              ioi: {
+                type: "OBJECT",
+                description: "Cấu hình chấm bài theo dạng hàm (IOI Signature / Grader). BẮT BUỘC có khi problemType là 'ioi'. Nếu không phải 'ioi', đặt là null.",
+                properties: {
+                  functionSignatureCpp: { type: "STRING", description: "Khai báo hàm C++ (ví dụ: long long solve(long long n);)" },
+                  functionSignaturePy: { type: "STRING", description: "Khai báo hàm Python (ví dụ: def solve(n: int) -> int:)" },
+                  headerH: { type: "STRING", description: "File header.h hoàn chỉnh có include guard (#ifndef _HEADER_INCLUDED...)" },
+                  handlerCpp: { type: "STRING", description: "File handler.cpp C++ đọc stdin, gọi hàm của thí sinh, in output ra stdout" },
+                  handlerPy: { type: "STRING", description: "File handler.py Python import hàm từ _submission, đọc stdin, gọi hàm, in output ra stdout" },
+                  contestantStubCpp: { type: "STRING", description: "Khung code stub.cpp C++ cho thí sinh tải về" },
+                  contestantStubPy: { type: "STRING", description: "Khung code stub.py Python cho thí sinh tải về" }
+                },
+                required: ["functionSignatureCpp", "functionSignaturePy", "headerH", "handlerCpp", "handlerPy", "contestantStubCpp", "contestantStubPy"]
+              },
               solutions: {
                 type: "ARRAY",
-                description: "Mảng chứa danh sách các lời giải thuật mẫu bằng C++. BẮT BUỘC số lượng phần tử trong mảng này phải trùng khớp hoàn toàn với số lượng Subtask có trong đề bài. TUYỆT ĐỐI KHÔNG ĐƯỢC GỘP CHUNG các Subtask (không gộp Subtask 1 & 2 làm một phần tử, mà phải tách thành 2 phần tử riêng biệt).",
+                description: "Mảng chứa danh sách các lời giải thuật mẫu bằng C++. BẮT BUỘC số lượng phần tử trong mảng này phải trùng khớp hoàn toàn với số lượng Subtask có trong đề bài. Với bài 'ioi', cài đặt hàm tương ứng thay vì hàm main.",
                 items: {
                   type: "OBJECT",
                   properties: {

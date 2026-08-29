@@ -977,11 +977,11 @@ export const ProblemForm: React.FC<ProblemFormProps> = ({
             </span>
           </div>
 
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             <button
               type="button"
               onClick={() => setProblemType('standard')}
-              className={`p-3 border rounded-xl flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
+              className={`p-2.5 border rounded-xl flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
                 problemType === 'standard'
                   ? "border-indigo-500 bg-indigo-50/80 text-indigo-950 font-bold ring-2 ring-indigo-500/20 shadow-xs"
                   : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-300"
@@ -994,7 +994,7 @@ export const ProblemForm: React.FC<ProblemFormProps> = ({
             <button
               type="button"
               onClick={() => setProblemType('checker')}
-              className={`p-3 border rounded-xl flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
+              className={`p-2.5 border rounded-xl flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
                 problemType === 'checker'
                   ? "border-indigo-500 bg-indigo-50/80 text-indigo-950 font-bold ring-2 ring-indigo-500/20 shadow-xs"
                   : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-300"
@@ -1007,7 +1007,7 @@ export const ProblemForm: React.FC<ProblemFormProps> = ({
             <button
               type="button"
               onClick={() => setProblemType('interactive')}
-              className={`p-3 border rounded-xl flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
+              className={`p-2.5 border rounded-xl flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
                 problemType === 'interactive'
                   ? "border-indigo-500 bg-indigo-50/80 text-indigo-950 font-bold ring-2 ring-indigo-500/20 shadow-xs"
                   : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-300"
@@ -1016,11 +1016,28 @@ export const ProblemForm: React.FC<ProblemFormProps> = ({
               <span className="text-xs font-bold">Interactive</span>
               <span className="text-[10px] text-slate-400 mt-0.5 font-normal">Tương tác</span>
             </button>
+
+            <button
+              type="button"
+              onClick={() => setProblemType('ioi')}
+              className={`p-2.5 border rounded-xl flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
+                problemType === 'ioi'
+                  ? "border-indigo-500 bg-indigo-50/80 text-indigo-950 font-bold ring-2 ring-indigo-500/20 shadow-xs"
+                  : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-300"
+              }`}
+            >
+              <span className="text-xs font-bold flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-indigo-600" />
+                IOI Mode
+              </span>
+              <span className="text-[10px] text-slate-400 mt-0.5 font-normal">Nộp bằng hàm</span>
+            </button>
           </div>
           <p className="text-[11px] text-slate-400 leading-relaxed">
             {problemType === 'standard' && "So khớp kết quả trực tiếp theo chuẩn Codeforces/LQDOJ."}
             {problemType === 'checker' && "Tự động sinh kèm file testlab/checker.cpp (testlib.h)."}
             {problemType === 'interactive' && "Tự động sinh kèm file testlab/interactive.cpp (interactor)."}
+            {problemType === 'ioi' && "Nộp bài dạng hàm theo chuẩn IOI / Grader: sinh kèm header.h, handler.cpp, handler.py và khung code mẫu."}
           </p>
         </div>
 
