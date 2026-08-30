@@ -307,7 +307,11 @@ export const ProblemForm: React.FC<ProblemFormProps> = ({
   const [rating, setRating] = useState<number>(1400);
   const [isRandomRating, setIsRandomRating] = useState<boolean>(false);
   const [category, setCategory] = useState<string>("Quy hoạch động");
-  const [problemType, setProblemType] = useState<'standard' | 'checker' | 'interactive'>('standard');
+  const [problemType, setProblemType] = useState<'standard' | 'floats' | 'checker' | 'interactive' | 'ioi' | 'output_only' | 'kaggle_csv'>('standard');
+  const [batchMode, setBatchMode] = useState<'sum' | 'icpc' | 'ioi_min'>('icpc');
+  const [checkerType, setCheckerType] = useState<string>('standard');
+  const [kaggleMetric, setKaggleMetric] = useState<string>('csv_accuracy');
+  const [kagglePretest, setKagglePretest] = useState<number>(0.5);
   const [testCount, setTestCount] = useState<number>(100);
   const [briefIdea, setBriefIdea] = useState<string>("");
   const [showApiKey, setShowApiKey] = useState<boolean>(false);
@@ -479,11 +483,20 @@ export const ProblemForm: React.FC<ProblemFormProps> = ({
 
     const validatedTestCount = testCount && testCount >= 5 && testCount <= 200 ? testCount : 100;
 
+    let finalCheckerType = checkerType;
+    if (problemType === 'floats') finalCheckerType = 'floats';
+    else if (problemType === 'checker') finalCheckerType = 'customcpp';
+    else if (problemType === 'interactive') finalCheckerType = 'customcpp';
+    else if (problemType === 'kaggle_csv') finalCheckerType = kaggleMetric;
+    else if (problemType === 'standard') finalCheckerType = 'standard';
+
     onSubmit({
       rating: finalRating,
       category: finalCategory,
       briefIdea: briefIdea.trim() ? briefIdea : undefined,
       problemType,
+      batchMode,
+      checkerType: finalCheckerType,
       testCount: validatedTestCount,
       model: finalModel
     });
@@ -977,11 +990,11 @@ export const ProblemForm: React.FC<ProblemFormProps> = ({
             </span>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-1.5">
             <button
               type="button"
               onClick={() => setProblemType('standard')}
-              className={`p-2.5 border rounded-xl flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
+              className={`p-2 border rounded-xl flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
                 problemType === 'standard'
                   ? "border-indigo-500 bg-indigo-50/80 text-indigo-950 font-bold ring-2 ring-indigo-500/20 shadow-xs"
                   : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-300"
@@ -993,8 +1006,21 @@ export const ProblemForm: React.FC<ProblemFormProps> = ({
 
             <button
               type="button"
+              onClick={() => setProblemType('floats')}
+              className={`p-2 border rounded-xl flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
+                problemType === 'floats'
+                  ? "border-indigo-500 bg-indigo-50/80 text-indigo-950 font-bold ring-2 ring-indigo-500/20 shadow-xs"
+                  : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-300"
+              }`}
+            >
+              <span className="text-xs font-bold">Số thực</span>
+              <span className="text-[10px] text-slate-400 mt-0.5 font-normal">Sai số EPS</span>
+            </button>
+
+            <button
+              type="button"
               onClick={() => setProblemType('checker')}
-              className={`p-2.5 border rounded-xl flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
+              className={`p-2 border rounded-xl flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
                 problemType === 'checker'
                   ? "border-indigo-500 bg-indigo-50/80 text-indigo-950 font-bold ring-2 ring-indigo-500/20 shadow-xs"
                   : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-300"
@@ -1007,7 +1033,7 @@ export const ProblemForm: React.FC<ProblemFormProps> = ({
             <button
               type="button"
               onClick={() => setProblemType('interactive')}
-              className={`p-2.5 border rounded-xl flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
+              className={`p-2 border rounded-xl flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
                 problemType === 'interactive'
                   ? "border-indigo-500 bg-indigo-50/80 text-indigo-950 font-bold ring-2 ring-indigo-500/20 shadow-xs"
                   : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-300"
@@ -1020,7 +1046,7 @@ export const ProblemForm: React.FC<ProblemFormProps> = ({
             <button
               type="button"
               onClick={() => setProblemType('ioi')}
-              className={`p-2.5 border rounded-xl flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
+              className={`p-2 border rounded-xl flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
                 problemType === 'ioi'
                   ? "border-indigo-500 bg-indigo-50/80 text-indigo-950 font-bold ring-2 ring-indigo-500/20 shadow-xs"
                   : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-300"
@@ -1030,15 +1056,117 @@ export const ProblemForm: React.FC<ProblemFormProps> = ({
                 <Sparkles className="w-3 h-3 text-indigo-600" />
                 IOI Mode
               </span>
-              <span className="text-[10px] text-slate-400 mt-0.5 font-normal">Nộp bằng hàm</span>
+              <span className="text-[10px] text-slate-400 mt-0.5 font-normal">Nộp hàm</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setProblemType('output_only')}
+              className={`p-2 border rounded-xl flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
+                problemType === 'output_only'
+                  ? "border-indigo-500 bg-indigo-50/80 text-indigo-950 font-bold ring-2 ring-indigo-500/20 shadow-xs"
+                  : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-300"
+              }`}
+            >
+              <span className="text-xs font-bold">Output-Only</span>
+              <span className="text-[10px] text-slate-400 mt-0.5 font-normal">Nộp ZIP</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setProblemType('kaggle_csv')}
+              className={`p-2 border rounded-xl flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
+                problemType === 'kaggle_csv'
+                  ? "border-indigo-500 bg-indigo-50/80 text-indigo-950 font-bold ring-2 ring-indigo-500/20 shadow-xs"
+                  : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-300"
+              }`}
+            >
+              <span className="text-xs font-bold">Kaggle ML</span>
+              <span className="text-[10px] text-slate-400 mt-0.5 font-normal">Bảng CSV</span>
             </button>
           </div>
-          <p className="text-[11px] text-slate-400 leading-relaxed">
-            {problemType === 'standard' && "So khớp kết quả trực tiếp theo chuẩn Codeforces/LQDOJ."}
-            {problemType === 'checker' && "Tự động sinh kèm file testlab/checker.cpp (testlib.h)."}
-            {problemType === 'interactive' && "Tự động sinh kèm file testlab/interactive.cpp (interactor)."}
-            {problemType === 'ioi' && "Nộp bài dạng hàm theo chuẩn IOI / Grader: sinh kèm header.h, handler.cpp, handler.py và khung code mẫu."}
-          </p>
+
+          {/* Sub-configurations based on problem type */}
+          <div className="pt-2 border-t border-slate-200/80 space-y-2">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <span className="text-[11px] font-semibold text-slate-600 flex items-center gap-1">
+                <Layers className="w-3.5 h-3.5 text-indigo-600" />
+                Quy tắc tính điểm Subtask (Batch Mode):
+              </span>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setBatchMode('icpc')}
+                  className={`px-2 py-0.5 text-[10px] font-bold rounded-md border cursor-pointer transition-all ${
+                    batchMode === 'icpc'
+                      ? "bg-indigo-600 text-white border-indigo-600"
+                      : "bg-white text-slate-600 border-slate-200 hover:bg-slate-100"
+                  }`}
+                  title="Subtask đạt điểm khi và chỉ khi đúng toàn bộ testcase (chuẩn IOI/ICPC)"
+                >
+                  All or 0 (ICPC/IOI)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBatchMode('sum')}
+                  className={`px-2 py-0.5 text-[10px] font-bold rounded-md border cursor-pointer transition-all ${
+                    batchMode === 'sum'
+                      ? "bg-indigo-600 text-white border-indigo-600"
+                      : "bg-white text-slate-600 border-slate-200 hover:bg-slate-100"
+                  }`}
+                  title="Mỗi test đúng đóng góp điểm độc lập (chuẩn VOI)"
+                >
+                  Sum (VOI)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBatchMode('ioi_min')}
+                  className={`px-2 py-0.5 text-[10px] font-bold rounded-md border cursor-pointer transition-all ${
+                    batchMode === 'ioi_min'
+                      ? "bg-indigo-600 text-white border-indigo-600"
+                      : "bg-white text-slate-600 border-slate-200 hover:bg-slate-100"
+                  }`}
+                  title="Điểm subtask bằng min điểm các test"
+                >
+                  Min (IOI)
+                </button>
+              </div>
+            </div>
+
+            {problemType === 'kaggle_csv' && (
+              <div className="p-2.5 bg-purple-50/70 border border-purple-200 rounded-xl space-y-2 text-xs">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <span className="font-bold text-purple-900">Chỉ số chấm điểm (Checker Metric):</span>
+                  <select
+                    value={kaggleMetric}
+                    onChange={(e) => setKaggleMetric(e.target.value)}
+                    className="px-2 py-1 bg-white border border-purple-200 rounded-lg text-xs font-mono font-bold text-purple-900"
+                  >
+                    <option value="csv_accuracy">csv_accuracy (Độ chính xác phân loại)</option>
+                    <option value="csv_rmse">csv_rmse (Root Mean Squared Error)</option>
+                    <option value="csv_mae">csv_mae (Mean Absolute Error)</option>
+                    <option value="csv_f1">csv_f1 (F1-score)</option>
+                    <option value="csv_auc">csv_auc (ROC AUC)</option>
+                    <option value="csv_logloss">csv_logloss (Logarithmic Loss)</option>
+                  </select>
+                </div>
+                <div className="flex items-center justify-between text-[11px] text-purple-800">
+                  <span>Tỷ lệ điểm Public Pretest:</span>
+                  <span className="font-mono font-bold">50% Public / 50% Private Leaderboard</span>
+                </div>
+              </div>
+            )}
+
+            <p className="text-[11px] text-slate-400 leading-relaxed">
+              {problemType === 'standard' && "Mục 3.1: So khớp kết quả trực tiếp theo token chuẩn LQDOJ/Codeforces."}
+              {problemType === 'floats' && "Mục 3.1 Floats: So khớp số thực với sai số tuyệt đối/tương đối (mặc định 10^-6)."}
+              {problemType === 'checker' && "Mục 3.2: Tự động sinh kèm file checker.cpp (testlib.h) xử lý nhiều đáp án đúng."}
+              {problemType === 'interactive' && "Mục 4: Tự động sinh kèm file interactive.cpp (interactor) giao tiếp 2 chiều."}
+              {problemType === 'ioi' && "Mục 5: Nộp bằng hàm chuẩn IOI Grader: C++ (header.h, handler.cpp), Python (handler.py), Java (Handler.java)."}
+              {problemType === 'output_only' && "Mục 7.1: Dạng bài Output-only thí sinh chạy trên máy rồi nộp file zip kết quả."}
+              {problemType === 'kaggle_csv' && "Mục 7.2: Dạng bài Kaggle CSV Machine Learning với Leaderboard Public/Private."}
+            </p>
+          </div>
         </div>
 
         {/* Configurable Testcase Count (testCount) */}

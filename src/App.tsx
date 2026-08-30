@@ -224,17 +224,29 @@ YÊU CẦU CHI TIẾT CỦA CÁC THÀNH PHẦN:
               title: { type: "STRING", description: "Tiêu đề bài toán (Tiếng Việt)" },
               rating: { type: "INTEGER", description: "Độ khó / rating của bài tập (Nếu được yêu cầu ngẫu nhiên, hãy tự chọn một độ khó cụ thể từ 1000 đến 2800 và ghi vào đây)" },
               category: { type: "STRING", description: "Chủ đề chính của bài toán (Nếu được yêu cầu ngẫu nhiên, hãy tự chọn một chủ đề CP cụ thể như 'Quy hoạch động', 'Đồ thị',... và ghi vào đây)" },
+              problemType: { 
+                type: "STRING", 
+                description: "Thể loại bài: 'standard' | 'floats' | 'checker' | 'interactive' | 'ioi' | 'output_only' | 'kaggle_csv'" 
+              },
               problemStatement: { 
                 type: "STRING", 
                 description: "Đề bài bằng tiếng Việt định dạng Markdown chuẩn 100% mẫu LQDOJ với các mục #### Input, #### Output, #### Example (với các thẻ MkDocs !!! question 'Test 1', ???+ 'Input', ???+ success 'Output', ??? warning 'Note'), và #### Scoring." 
               },
               testGenerator: { 
                 type: "STRING", 
-                description: "Mã nguồn C++ generator.cpp sinh dữ liệu testcase ngẫu nhiên tuân thủ: nhận tham số giới hạn và seed từ đối số dòng lệnh; in input ra stdout; in output mong đợi ra stderr. ĐƯỢC PHÉP dùng #pragma GCC optimize." 
+                description: "Mã nguồn C++ generator.cpp sinh dữ liệu testcase ngẫu nhiên tuân thủ: nhận tham số giới hạn và seed từ đối số dòng lệnh; in input ra stdout; in output mong đợi ra stderr." 
               },
               generatorScript: { 
                 type: "STRING", 
                 description: `Script sinh test gồm đúng ${testCount} dòng tương ứng với ${testCount} testcases mạnh khác nhau. Mỗi dòng chứa các tham số truyền cho generator, cột cuối cùng là seed ngẫu nhiên thay đổi liên tục.` 
+              },
+              checkerType: {
+                type: "STRING",
+                description: "Tên checker trên LQDOJ: 'standard' | 'floats' | 'floatsabs' | 'floatsrel' | 'rstripped' | 'sorted' | 'identical' | 'linecount' | 'customcpp' | 'testlib' | 'testlib_ioi' | 'csv_accuracy' | 'csv_rmse' | 'csv_mae' | 'csv_f1' | 'csv_auc' | 'csv_logloss'"
+              },
+              checkerArgs: {
+                type: "STRING",
+                description: "Cấu hình JSON bổ sung cho checker (nếu dùng floats precision, csv cột, baseline, pretest_fraction)"
               },
               checker: { 
                 type: "STRING", 
@@ -244,19 +256,65 @@ YÊU CẦU CHI TIẾT CỦA CÁC THÀNH PHẦN:
                 type: "STRING", 
                 description: "Mã nguồn C++ interactive.cpp chạy dưới dạng ./main <input_file> <answer_file> (nullable)" 
               },
+              validator: {
+                type: "OBJECT",
+                description: "Trình kiểm tra testcase (Validator) theo mục 6 LQDOJ",
+                properties: {
+                  validatorCpp: { type: "STRING", description: "Mã nguồn C++ validator.cpp đọc stdin kiểm tra ràng buộc" },
+                  validatorPy: { type: "STRING", description: "Mã nguồn Python validator.py đọc stdin kiểm tra ràng buộc" }
+                },
+                required: ["validatorCpp", "validatorPy"]
+              },
               ioi: {
                 type: "OBJECT",
                 description: "Cấu hình chấm bài theo dạng hàm (IOI Signature / Grader). BẮT BUỘC có khi problemType là 'ioi'. Nếu không phải 'ioi', đặt là null.",
                 properties: {
                   functionSignatureCpp: { type: "STRING", description: "Khai báo hàm C++ (ví dụ: long long solve(long long n);)" },
                   functionSignaturePy: { type: "STRING", description: "Khai báo hàm Python (ví dụ: def solve(n: int) -> int:)" },
+                  functionSignatureJava: { type: "STRING", description: "Khai báo hàm Java (ví dụ: public static int solve(int n))" },
                   headerH: { type: "STRING", description: "File header.h hoàn chỉnh có include guard (#ifndef _HEADER_INCLUDED...)" },
                   handlerCpp: { type: "STRING", description: "File handler.cpp C++ đọc stdin, gọi hàm của thí sinh, in output ra stdout" },
                   handlerPy: { type: "STRING", description: "File handler.py Python import hàm từ _submission, đọc stdin, gọi hàm, in output ra stdout" },
+                  handlerJava: { type: "STRING", description: "File Handler.java đọc stdin, gọi Solution.solve, in output ra stdout" },
                   contestantStubCpp: { type: "STRING", description: "Khung code stub.cpp C++ cho thí sinh tải về" },
-                  contestantStubPy: { type: "STRING", description: "Khung code stub.py Python cho thí sinh tải về" }
+                  contestantStubPy: { type: "STRING", description: "Khung code stub.py Python cho thí sinh tải về" },
+                  contestantStubJava: { type: "STRING", description: "Khung code Solution.java cho thí sinh tải về" }
                 },
                 required: ["functionSignatureCpp", "functionSignaturePy", "headerH", "handlerCpp", "handlerPy", "contestantStubCpp", "contestantStubPy"]
+              },
+              kaggle: {
+                type: "OBJECT",
+                description: "Cấu hình bài tập kiểu Kaggle CSV Machine Learning",
+                properties: {
+                  metric: { type: "STRING", description: "'csv_accuracy' | 'csv_rmse' | 'csv_mae' | 'csv_f1' | 'csv_auc' | 'csv_logloss'" },
+                  idColumn: { type: "STRING", description: "Tên cột định danh id_column" },
+                  labelColumn: { type: "STRING", description: "Tên cột mục tiêu label_column" },
+                  hasHeader: { type: "BOOLEAN", description: "File CSV có hàng tiêu đề hay không" },
+                  baseline: { type: "NUMBER", description: "Giá trị baseline tệ nhất tương ứng với 0 điểm (cho rmse, mae, logloss)" },
+                  pretestFraction: { type: "NUMBER", description: "Tỷ lệ dòng pretest hiển thị bảng xếp hạng public (ví dụ 0.5)" },
+                  sampleTrainCsv: { type: "STRING", description: "Nội dung file train.csv mẫu" },
+                  sampleTestCsv: { type: "STRING", description: "Nội dung file test.csv mẫu" },
+                  sampleSolutionCsv: { type: "STRING", description: "Nội dung file solution.csv (đáp án đúng) mẫu" }
+                },
+                required: ["metric", "hasHeader"]
+              },
+              outputOnlyConfig: {
+                type: "OBJECT",
+                description: "Cấu hình bài Output-only truyền thống kiểu IOI",
+                properties: {
+                  isOutputOnly: { type: "BOOLEAN", description: "True nếu là bài Output-only" },
+                  submissionSizeLimitMb: { type: "INTEGER", description: "Dung lượng tối đa của file zip bài nộp (MB)" },
+                  binaryAnswerData: { type: "BOOLEAN", description: "True nếu đáp án là dữ liệu nhị phân" }
+                },
+                required: ["isOutputOnly"]
+              },
+              initYml: {
+                type: "STRING",
+                description: "File cấu hình init.yml hoàn chỉnh chuẩn LQDOJ Test Data"
+              },
+              customJson: {
+                type: "STRING",
+                description: "JSON cấu hình test cases và batches theo mục 2.4 Hướng dẫn LQDOJ"
               },
               solutions: {
                 type: "ARRAY",
