@@ -20,7 +20,64 @@ export function parseSubtasksFromStatement(problem: LQDOJProblem): TestBatch[] {
   const subtaskCount = problem.solutions && problem.solutions.length > 0 ? problem.solutions.length : 3;
   const batches: TestBatch[] = [];
   
-  const pointsPerSubtask = Math.floor(100 / subtaskCount);
+  // Calculate points according to subtask distribution
+  const dist = problem.subtaskDistribution || 'decreasing';
+  const pointsList: number[] = [];
+
+  // Check if points are explicitly in markdown statement (e.g. "Subtask 1 (40 điểm)")
+  const statementPointMatches: number[] = [];
+  const regex = /Subtask\s+\d+[^(\n]*\((?:khoảng\s*)?(\d+)\s*(?:điểm|%|pts)/gi;
+  let match;
+  while ((match = regex.exec(statement)) !== null) {
+    statementPointMatches.push(parseInt(match[1], 10));
+  }
+
+  if (statementPointMatches.length === subtaskCount) {
+    pointsList.push(...statementPointMatches);
+  } else {
+    // Generate according to subtaskDistribution
+    if (dist === 'decreasing') {
+      if (subtaskCount === 1) pointsList.push(100);
+      else if (subtaskCount === 2) pointsList.push(60, 40);
+      else if (subtaskCount === 3) pointsList.push(50, 30, 20);
+      else if (subtaskCount === 4) pointsList.push(40, 30, 20, 10);
+      else if (subtaskCount === 5) pointsList.push(35, 25, 20, 12, 8);
+      else if (subtaskCount === 6) pointsList.push(30, 25, 20, 12, 8, 5);
+      else {
+        let remaining = 100;
+        for (let i = 0; i < subtaskCount; i++) {
+          const pt = i === subtaskCount - 1 ? remaining : Math.max(5, Math.round(remaining * 0.4));
+          pointsList.push(pt);
+          remaining -= pt;
+        }
+      }
+    } else if (dist === 'increasing') {
+      if (subtaskCount === 1) pointsList.push(100);
+      else if (subtaskCount === 2) pointsList.push(40, 60);
+      else if (subtaskCount === 3) pointsList.push(20, 30, 50);
+      else if (subtaskCount === 4) pointsList.push(10, 20, 30, 40);
+      else if (subtaskCount === 5) pointsList.push(8, 12, 20, 25, 35);
+      else if (subtaskCount === 6) pointsList.push(5, 8, 12, 20, 25, 30);
+      else {
+        let remaining = 100;
+        const temp: number[] = [];
+        for (let i = 0; i < subtaskCount; i++) {
+          const pt = i === subtaskCount - 1 ? remaining : Math.max(5, Math.round(remaining * 0.4));
+          temp.push(pt);
+          remaining -= pt;
+        }
+        pointsList.push(...temp.reverse());
+      }
+    } else {
+      // Equal
+      const base = Math.floor(100 / subtaskCount);
+      let rem = 100 - base * subtaskCount;
+      for (let i = 0; i < subtaskCount; i++) {
+        pointsList.push(base + (i === subtaskCount - 1 ? rem : 0));
+      }
+    }
+  }
+
   let testsPerSubtask = Math.floor(totalTests / subtaskCount);
   let currentStart = 1;
 
@@ -28,7 +85,7 @@ export function parseSubtasksFromStatement(problem: LQDOJProblem): TestBatch[] {
     const isLast = i === subtaskCount - 1;
     const count = isLast ? totalTests - currentStart + 1 : testsPerSubtask;
     const end = currentStart + count - 1;
-    const points = isLast ? 100 - pointsPerSubtask * (subtaskCount - 1) : pointsPerSubtask;
+    const points = pointsList[i] ?? Math.floor(100 / subtaskCount);
     const name = problem.solutions[i]?.subtask || `Subtask ${i + 1}`;
     
     batches.push({

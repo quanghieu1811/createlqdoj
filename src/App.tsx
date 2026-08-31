@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { ProblemForm, MEMES_TOURNAMENT_CATEGORIES } from "./components/ProblemForm";
 import { ProblemViewer } from "./components/ProblemViewer";
-import { LQDOJProblem, GenerationRequest } from "./types";
+import { LQDOJProblem, GenerationRequest, SubtaskDistribution } from "./types";
 import { Sparkles, Code2, ArrowLeft, Terminal, FileText, AlertTriangle } from "lucide-react";
 
 const LOADING_STEPS = [
@@ -67,10 +67,37 @@ export default function App() {
   }, [model]);
 
   // Helper to build cohesive system instructions reflecting user guidelines and platform requirements
-  const buildSystemInstruction = (rating: any, category: any, testCount: number = 100) => {
+  const buildSystemInstruction = (
+    rating: any,
+    category: any,
+    testCount: number = 100,
+    subtaskDistribution: SubtaskDistribution = 'decreasing'
+  ) => {
     const ratingStr = rating === "random" ? "tùy chọn ngẫu nhiên phù hợp từ 800 đến 3500 (hãy tự chọn độ khó thích hợp và ghi chính xác số này vào trường rating trong JSON)" : (rating || 1400);
     const categoryStr = category === "Random" ? "tùy chọn ngẫu nhiên chủ đề theo Thể lệ Memes Tournament 2026-2027 (Phụ lục 2: Giới hạn kiến thức THCS & THPT, ghi chính xác tên chủ đề vào trường category trong JSON)" : (category || "Quy hoạch động cơ bản");
     const count = testCount && testCount >= 5 && testCount <= 200 ? testCount : 100;
+
+    let distExplanation = "";
+    if (subtaskDistribution === 'decreasing') {
+      distExplanation = `KIỂU 2 (MẶC ĐỊNH): SỐ ĐIỂM GIẢM DẦN THEO ĐỘ KHÓ.
+Các subtask dễ có số điểm cao nhất, số điểm giảm dần ở các subtask khó hơn phía sau.
+Ví dụ:
+- Nếu chia 4 subtask: Subtask 1 (40 điểm/%), Subtask 2 (30 điểm/%), Subtask 3 (20 điểm/%), Subtask 4 (10 điểm/%).
+- Nếu chia 5 subtask: Subtask 1 (35 điểm), Subtask 2 (25 điểm), Subtask 3 (20 điểm), Subtask 4 (12 điểm), Subtask 5 (8 điểm).`;
+    } else if (subtaskDistribution === 'increasing') {
+      distExplanation = `KIỂU 3: SỐ ĐIỂM TĂNG DẦN THEO ĐỘ KHÓ.
+Các subtask dễ có số điểm thấp, các subtask khó và tối ưu cao nhất chiếm số điểm cao nhất.
+Ví dụ:
+- Nếu chia 4 subtask: Subtask 1 (10 điểm/%), Subtask 2 (20 điểm/%), Subtask 3 (30 điểm/%), Subtask 4 (40 điểm/%).
+- Nếu chia 5 subtask: Subtask 1 (8 điểm), Subtask 2 (12 điểm), Subtask 3 (20 điểm), Subtask 4 (25 điểm), Subtask 5 (35 điểm).`;
+    } else {
+      distExplanation = `KIỂU 1: CHIA TẤT CẢ BẰNG NHAU.
+Mọi subtask đều có số điểm bằng nhau (hoặc gần như bằng nhau với tổng bằng 100).
+Ví dụ:
+- Nếu chia 4 subtask: Mỗi subtask đúng 25 điểm / 25%.
+- Nếu chia 5 subtask: Mỗi subtask đúng 20 điểm / 20%.`;
+    }
+
     return `Bạn đóng vai trò là "Gemma 4 31B IT" - Mô hình ngôn ngữ lớn chuyên gia thiết kế đề thi lập trình thi đấu (Problem Setter) kỳ cựu trên nền tảng LQDOJ (Lê Quý Đôn Online Judge) và Ban ra đề cuộc thi Memes Tournament năm học 2026 - 2027 (Fan Memes × CBRT Online Judge).
 Nhiệm vụ của bạn là thiết kế một bài tập lập trình hoàn chỉnh, chuyên nghiệp và có độ chính xác khoa học tuyệt đối, nhắm tới độ khó rating ${ratingStr} và chủ đề "${categoryStr}".
 
@@ -83,6 +110,24 @@ YÊU CẦU CRITICAL (BẮT BUỘC):
 2. KHÔNG ĐƯỢC VIẾT CỐT TRUYỆN NẾU KHÔNG CÓ YÊU CẦU BỔ SUNG:
    - Nếu trong gợi ý hoặc ý tưởng sơ lược ("briefIdea" hoặc "feedback") từ người dùng có yêu cầu viết cốt truyện/bối cảnh rõ ràng, bạn hãy thiết kế một cốt truyện sáng tạo.
    - Ngược lại, nếu người dùng KHÔNG yêu cầu gì về bối cảnh/cốt truyện, bạn tuyệt đối KHÔNG ĐƯỢC VIẾT CỐT TRUYỆN (không rùa thỏ, không Tèo Tí, không phiêu lưu, không cổ tích...). Đề bài phải được phát biểu trực tiếp dưới dạng toán học hoặc cấu trúc dữ liệu thô một cách rõ ràng, ngắn gọn và trực quan nhất.
+
+3. QUY TẮC PHÂN CHIA SUBTASK & BẢO TOÀN TÍNH ĐỘC LẬP (ANTI-AC-LEAK):
+   a. TỐI ĐA HÓA SỐ LƯỢNG SUBTASK:
+      - Hãy cố gắng chia bài toán thành NHIỀU SUBTASK NHẤT CÓ THỂ (thông thường từ 4 đến 6 subtask, hoặc ít nhất 3-5 subtask có ý nghĩa thuật toán thực chất).
+      - Các subtask phải tương ứng với các tầng độ phức tạp giải thuật hoặc các trường hợp đặc biệt tự nhiên, ví dụ:
+        + Subtask 1: Vét cạn / Đệ quy quay lui / Sinh nhị phân O(2^N) hoặc O(N!) với N <= 20.
+        + Subtask 2: Quy hoạch động / Duyệt O(N^3) với N <= 100.
+        + Subtask 3: Thuật toán O(N^2) với N <= 3000 hoặc trường hợp đặc biệt (đồ thị là cây/đường thẳng, mảng nhị phân, K=1...).
+        + Subtask 4: Thuật toán O(N sqrt(N)) chia căn hoặc Hai con trỏ với N <= 5*10^4.
+        + Subtask 5: Thuật toán Full Solution O(N log N) hoặc O(N) với N <= 2*10^5 (hoặc 10^6).
+   b. TÍNH ĐỘC LẬP VÀ CHẶN TRIỆT ĐỂ (KHÔNG AC VƯỢT SUBTASK):
+      - BẮT BUỘC mỗi lời giải của subtask k chỉ giải được tối đa đến subtask k.
+      - TUYỆT ĐỐI KHÔNG TỒN TẠI TRƯỜNG HỢP lời giải của subtask trước có thể giải được (AC) các subtask sau.
+      - Giới hạn thời gian (Time Limit), giới hạn N và bộ testcase trong script.txt phải được thiết kế cực kỳ chặt chẽ: testcase của subtask sau phải đủ lớn và chứa các dữ liệu worst-case để chặn đứng hoàn toàn (bị TLE hoặc WA) tất cả các giải thuật chưa tối ưu của subtask trước.
+   c. KIỂU PHÂN BỔ ĐIỂM SỐ SUBTASK:
+      - Áp dụng cấu hình phân bổ điểm: ${subtaskDistribution}
+      - ${distExplanation}
+      - Trong mục "#### Scoring" của Đề bài và file init.yml, hãy ghi rõ số điểm / tỷ lệ % của từng subtask theo đúng quy tắc này.
 
 YÊU CẦU CHI TIẾT CỦA CÁC THÀNH PHẦN:
 1. ĐỀ BÀI (problemStatement):
@@ -113,17 +158,18 @@ YÊU CẦU CHI TIẾT CỦA CÁC THÀNH PHẦN:
         [Giải thích ví dụ nếu cần]
 
 #### Scoring
-- Subtask 1 (x điểm): $1 \\le n \\le 100$
-- Subtask 2 (y điểm): $1 \\le n \\le 10^5$
+- Subtask 1 (x điểm): [Ràng buộc subtask 1]
+- Subtask 2 (y điểm): [Ràng buộc subtask 2]
 
 - QUY TẮC BẮT BUỘC VỀ ĐỊNH DẠNG:
   + Dùng đúng 4 mục tiêu đề level 4: \`#### Input\`, \`#### Output\`, \`#### Example\`, \`#### Scoring\`.
   + Nếu thể loại bài là 'ioi' (IOI Signature / Cài đặt hàm):
-    * Trong đề bài, nêu rõ: Thí sinh cài đặt hàm (tên hàm, các tham số đầu vào, kiểu dữ liệu trả về) cho cả C/C++ và Python thay vì nhập/xuất từ stdin/stdout.
+    * Trong đề bài, nêu rõ: Thí sinh cài đặt hàm (tên hàm, các tham số đầu vào, kiểu dữ liệu trả về) cho cả C/C++, Python và Java thay vì nhập/xuất từ stdin/stdout.
     * Giải thích giao diện thư viện: C++ include header.h; Python được chấm qua file _submission.py.
     * Phần ví dụ mô tả rõ các giá trị truyền vào hàm và kết quả hàm trả về.
   + Các ví dụ testcase phải dùng đúng cấu trúc khối thông báo MkDocs Admonition (\`!!! question "Test 1"\`, \`???+ "Input"\`, \`???+ success "Output"\`, \`??? warning "Note"\`).
   + Khối mã mẫu phải kẹp trong \`\`\`sample.
+  + Số điểm của từng Subtask trong phần Scoring phải tuân thủ đúng quy tắc phân bổ: ${subtaskDistribution}.
   + Sử dụng ký hiệu Toán học bằng LaTeX (kẹp giữa dấu $) như $1 \\le N \\le 10^5$. Hãy chắc chắn dấu gạch chéo ngược được escape đúng trong JSON (dùng \\\\ thay vì \\).
 
 2. TEST GENERATOR (testGenerator) VÀ SCRIPT (generatorScript):
@@ -134,9 +180,12 @@ YÊU CẦU CHI TIẾT CỦA CÁC THÀNH PHẦN:
 - Generator phải:
   - In dữ liệu đầu vào (input) ra stdout (cout).
   - In dữ liệu đầu ra mong đợi (lời giải/đáp án chuẩn) ra stderr (cerr).
-- Bạn phải cung cấp kịch bản sinh test "generatorScript" gồm ĐÚNG ${count} dòng tương ứng với ${count} testcases mạnh khác nhau. Mỗi dòng chứa các tham số truyền vào lệnh ./generator, kết thúc bằng một seed thay đổi liên tục cho mỗi testcase (để tránh trùng lặp). Dải tham số trên ${count} dòng phải phân bố đều từ các giới hạn cực nhỏ (cho Subtask 1) đến giới hạn tối đa cực lớn (cho Subtask cuối).
+- Bạn phải cung cấp kịch bản sinh test "generatorScript" gồm ĐÚNG ${count} dòng tương ứng với ${count} testcases mạnh khác nhau. Mỗi dòng chứa các tham số truyền vào lệnh ./generator, kết thúc bằng một seed thay đổi liên tục cho mỗi testcase (để tránh trùng lặp). Dải tham số trên ${count} dòng phải phân bố tương ứng chính xác theo từng Subtask.
 
-3. CUSTOM CHECKER (checker) [C++]:
+3. TRÌNH KIỂM TRA TEST / VALIDATOR (validator):
+- Cung cấp mã nguồn C++ (validatorCpp) và Python (validatorPy) để kiểm tra tính hợp lệ của mọi file input theo đúng ràng buộc đề bài. Đọc từ stdin, exit 0 nếu hợp lệ, exit 1 và in thông báo lỗi ra stderr nếu vi phạm.
+
+4. CUSTOM CHECKER (checker) [C++]:
 - Nếu đề bài thuộc thể loại 'checker' (nhiều đáp án đúng hoặc định dạng chấm điểm đặc biệt), bạn phải viết một chương trình checker hoàn chỉnh bằng C++ chạy dạng:
   ./main <input_file> <output_file> <ans_file>
   Trong đó, mã thoát:
@@ -146,7 +195,7 @@ YÊU CẦU CHI TIẾT CỦA CÁC THÀNH PHẦN:
   Mọi dữ liệu in ra stdout của checker sẽ được hiển thị làm feedback cho học sinh.
 - Nếu không phải thể loại 'checker', hãy đặt trường này là null.
 
-4. INTERACTIVE (interactive) [C++]:
+5. INTERACTIVE (interactive) [C++]:
 - Nếu đề bài thuộc thể loại 'interactive' (tương tác trực tiếp), bạn phải viết một chương trình tương tác interactor hoàn chỉnh bằng C++ chạy dạng:
   ./main <input_file> <answer_file>
   Giao tiếp giữa bài làm và interactor thông qua stdin/stdout (nhớ flush).
@@ -157,25 +206,29 @@ YÊU CẦU CHI TIẾT CỦA CÁC THÀNH PHẦN:
   Mọi dữ liệu ghi ra stderr sẽ được hiển thị làm feedback cho học sinh.
 - Nếu không phải thể loại 'interactive', hãy đặt trường này là null.
 
-5. IOI SIGNATURE (ioi):
+6. IOI SIGNATURE (ioi):
 - Nếu đề bài thuộc thể loại 'ioi' (Dạng bài nộp bằng hàm như IOI / Grader), bạn PHẢI cung cấp đầy đủ đối tượng 'ioi':
   + functionSignatureCpp: Khai báo hàm C++ (ví dụ: long long solve(long long n);)
   + functionSignaturePy: Khai báo hàm Python (ví dụ: def solve(n: int) -> int:)
+  + functionSignatureJava: Khai báo hàm Java (ví dụ: public static int solve(int n))
   + headerH: File header (header.h) cho C/C++ có include guard (#ifndef _HEADER_INCLUDED...)
   + handlerCpp: File handler.cpp C++ đọc input từ stdin, gọi hàm của thí sinh, in output ra stdout
   + handlerPy: File handler.py Python import hàm từ _submission (ví dụ: from _submission import solve), đọc input, gọi hàm, in output ra stdout
+  + handlerJava: File Handler.java Java
   + contestantStubCpp: File stub.cpp mẫu khung code C++ cho thí sinh
   + contestantStubPy: File stub.py mẫu khung code Python cho thí sinh
+  + contestantStubJava: File Solution.java mẫu khung code Java cho thí sinh
 - Nếu không phải thể loại 'ioi', hãy đặt trường này là null.
 
-6. SOLUTIONS (solutions):
+7. SOLUTIONS (solutions):
 - BẮT BUỘC TUYỆT ĐỐI: Có bao nhiêu Subtask được định nghĩa trong Đề bài (problemStatement), bạn PHẢI viết đúng bấy nhiêu lời giải/giải thuật mẫu bằng C++ độc lập tương ứng vào mảng "solutions" này (Số lượng Subtask = Số lượng giải thuật trong mảng solutions).
+- Mỗi phần tử trong "solutions" phải được viết chuyên biệt cho subtask đó (ví dụ giải thuật O(N^3) cho subtask 2, giải thuật O(N^2) cho subtask 3, Segment Tree O(N log N) cho Full Solution).
 - Đối với bài thể loại 'ioi', mã nguồn trong "solutions" PHẢI cài đặt hàm theo đúng chữ ký IOI Signature (không chứa hàm main).
 - CẤM TUYỆT ĐỐI KHÔNG SỬ DỤNG #pragma (như #pragma GCC optimize, #pragma GCC target, v.v.) trong bất kỳ mã nguồn lời giải (solutions) nào. Lời giải mẫu phải tuân thủ chuẩn C++ thuần túy và độ phức tạp thuật toán (được phép dùng Fast I/O như ios_base::sync_with_stdio(false); cin.tie(NULL);).
 - TUYỆT ĐỐI KHÔNG ĐƯỢC GỘP CHUNG các Subtask.
-- Ví dụ, nếu Đề bài có 3 Subtask độc lập thì mảng "solutions" PHẢI chứa đúng 3 phần tử C++ hoàn chỉnh tương ứng với từng Subtask một.
+- Ví dụ, nếu Đề bài có 4 Subtask độc lập thì mảng "solutions" PHẢI chứa đúng 4 phần tử C++ hoàn chỉnh tương ứng với từng Subtask một.
 
-7. PHÂN TÍCH (analysis):
+8. PHÂN TÍCH (analysis):
 - Viết phân tích/editorial chi tiết bằng tiếng Việt giải thích ý tưởng giải bài.`;
   };
 
@@ -458,13 +511,17 @@ YÊU CẦU CHI TIẾT CỦA CÁC THÀNH PHẦN:
         : request.category;
 
       const finalTestCount = request.testCount && request.testCount >= 5 && request.testCount <= 200 ? request.testCount : 100;
+      const finalSubtaskDist = request.subtaskDistribution || 'decreasing';
+      const finalBatchMode = request.batchMode || 'icpc';
 
-      const systemInstruction = buildSystemInstruction(finalRating, finalCategory, finalTestCount);
+      const systemInstruction = buildSystemInstruction(finalRating, finalCategory, finalTestCount, finalSubtaskDist);
       
       const userPrompt = `Hãy tạo một bài tập lập trình hoàn chỉnh mới với các thông số sau:
 - Độ khó (Rating): ${finalRating}
 - Chủ đề: ${finalCategory}
 - Thể loại bài: ${request.problemType}
+- Kiểu phân bổ điểm Subtask: ${finalSubtaskDist} (Tối đa hóa số lượng subtask và đảm bảo lời giải trước không AC được subtask sau)
+- Quy tắc tính điểm subtask (Batch mode): ${finalBatchMode}
 - Số lượng testcase sinh tự động: ${finalTestCount} testcases (kịch bản generatorScript bắt buộc gồm đúng ${finalTestCount} dòng tham số khác nhau)
 ${request.briefIdea ? `- Ý tưởng sơ lược hoặc gợi ý từ người dùng: ${request.briefIdea}` : "- Hãy tự sáng tạo ra một bài tập độc đáo, thú vị và phát biểu toán học trực tiếp (tuyệt đối không viết cốt truyện) phù hợp với rating và chủ đề này."}
 
@@ -483,6 +540,8 @@ Hãy trả về kết quả hoàn toàn dưới dạng JSON tuân thủ đúng c
       // Parse final compiled JSON response
       const data = JSON.parse(accumulatedText);
       data.testCount = finalTestCount;
+      data.subtaskDistribution = finalSubtaskDist;
+      data.batchMode = finalBatchMode;
       setProblem(data);
     } catch (err: any) {
       console.error("Lỗi streaming trực tiếp:", err);
@@ -502,12 +561,14 @@ Hãy trả về kết quả hoàn toàn dưới dạng JSON tuân thủ đúng c
     setError(null);
     try {
       const currentTestCount = problem.testCount || 100;
-      const systemInstruction = buildSystemInstruction(problem.rating, problem.category, currentTestCount);
+      const currentSubtaskDist = problem.subtaskDistribution || 'decreasing';
+      const systemInstruction = buildSystemInstruction(problem.rating, problem.category, currentTestCount, currentSubtaskDist);
       const userPrompt = `Dưới đây là bài toán lập trình hiện tại đã được sinh ra:
 Tiêu đề: ${problem.title}
 Chủ đề: ${problem.category}
 Rating: ${problem.rating}
 Số lượng testcase (testCount): ${currentTestCount}
+Kiểu phân bổ điểm Subtask: ${currentSubtaskDist}
 
 Mã nguồn sinh test (generator.cpp):
 ${problem.testGenerator}
@@ -520,7 +581,8 @@ Hãy CHỈNH SỬA VÀ CẬP NHẬT bài toán này dựa trên phản hồi c�
 
 LƯU Ý KHI CHỈNH SỬA:
 - Giữ nguyên các phần không bị yêu cầu thay đổi để đảm bảo tính nhất quán.
-- Kịch bản generatorScript vẫn phải giữ đúng ${currentTestCount} dòng testcase tương ứng.
+- Kịch bản generatorScript gồm đúng ${currentTestCount} dòng testcase tương ứng.
+- Đảm bảo tính độc lập giữa các Subtask: mỗi lời giải chỉ AC đến subtask đó và không AC được subtask sau.
 - Nếu người dùng yêu cầu chỉnh sửa giới hạn, hãy cập nhật tương ứng ở cả Đề bài, Trình sinh test (generator.cpp) và phần Phân tích thuật toán.
 - Đảm bảo mã nguồn C++ (giải thuật mẫu và trình sinh test) vẫn hoàn toàn chính xác và biên dịch được sau khi sửa đổi.
 - Trả về đối tượng JSON đầy đủ sau khi đã sửa đổi.`;

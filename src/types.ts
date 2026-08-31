@@ -44,6 +44,8 @@ export interface OutputOnlyConfig {
   sampleOutputFiles?: { filename: string; content: string }[];
 }
 
+export type SubtaskDistribution = 'decreasing' | 'increasing' | 'equal';
+
 export interface LQDOJProblem {
   title: string;
   rating: number;
@@ -64,6 +66,7 @@ export interface LQDOJProblem {
   initYml?: string;
   customJson?: string;
   batchMode?: 'sum' | 'icpc' | 'ioi_min';
+  subtaskDistribution?: SubtaskDistribution;
   solutions: SubtaskSolution[];
   analysis: string;
 }
@@ -75,6 +78,7 @@ export interface GenerationRequest {
   problemType: 'standard' | 'floats' | 'checker' | 'interactive' | 'ioi' | 'output_only' | 'kaggle_csv';
   checkerType?: string;
   batchMode?: 'sum' | 'icpc' | 'ioi_min';
+  subtaskDistribution?: SubtaskDistribution;
   testCount?: number;
   model?: string;
   apiKey?: string;

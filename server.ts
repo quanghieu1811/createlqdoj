@@ -26,8 +26,35 @@ const resolveModel = (clientModel?: string) => {
 };
 
 // Helper to build cohesive system instructions reflecting user guidelines and platform requirements
-const buildSystemInstruction = (rating: any, category: any, testCount: number = 100) => {
+const buildSystemInstruction = (
+  rating: any,
+  category: any,
+  testCount: number = 100,
+  subtaskDistribution: 'decreasing' | 'increasing' | 'equal' = 'decreasing'
+) => {
   const count = testCount && testCount >= 5 && testCount <= 200 ? testCount : 100;
+
+  let distExplanation = "";
+  if (subtaskDistribution === 'decreasing') {
+    distExplanation = `KIỂU 2 (MẶC ĐỊNH): SỐ ĐIỂM GIẢM DẦN THEO ĐỘ KHÓ.
+Các subtask dễ có số điểm cao nhất, số điểm giảm dần ở các subtask khó hơn phía sau.
+Ví dụ:
+- Nếu chia 4 subtask: Subtask 1 (40 điểm/%), Subtask 2 (30 điểm/%), Subtask 3 (20 điểm/%), Subtask 4 (10 điểm/%).
+- Nếu chia 5 subtask: Subtask 1 (35 điểm), Subtask 2 (25 điểm), Subtask 3 (20 điểm), Subtask 4 (12 điểm), Subtask 5 (8 điểm).`;
+  } else if (subtaskDistribution === 'increasing') {
+    distExplanation = `KIỂU 3: SỐ ĐIỂM TĂNG DẦN THEO ĐỘ KHÓ.
+Các subtask dễ có số điểm thấp, các subtask khó và tối ưu cao nhất chiếm số điểm cao nhất.
+Ví dụ:
+- Nếu chia 4 subtask: Subtask 1 (10 điểm/%), Subtask 2 (20 điểm/%), Subtask 3 (30 điểm/%), Subtask 4 (40 điểm/%).
+- Nếu chia 5 subtask: Subtask 1 (8 điểm), Subtask 2 (12 điểm), Subtask 3 (20 điểm), Subtask 4 (25 điểm), Subtask 5 (35 điểm).`;
+  } else {
+    distExplanation = `KIỂU 1: CHIA TẤT CẢ BẰNG NHAU.
+Mọi subtask đều có số điểm bằng nhau (hoặc gần như bằng nhau với tổng bằng 100).
+Ví dụ:
+- Nếu chia 4 subtask: Mỗi subtask đúng 25 điểm / 25%.
+- Nếu chia 5 subtask: Mỗi subtask đúng 20 điểm / 20%.`;
+  }
+
   return `Bạn đóng vai trò là một "Gemma 4 31B IT" - Mô hình ngôn ngữ lớn chuyên gia thiết kế đề thi lập trình thi đấu (Problem Setter) kỳ cựu trên nền tảng LQDOJ (Lê Quý Đôn Online Judge).
 Nhiệm vụ của bạn là thiết kế một bài tập lập trình hoàn chỉnh, chuyên nghiệp và có độ chính xác khoa học tuyệt đối, nhắm tới độ khó rating ${rating || 1400} và chủ đề "${category || "Dynamic Programming"}".
 
@@ -36,6 +63,24 @@ YÊU CẦU CRITICAL (BẮT BUỘC):
 2. KHÔNG ĐƯỢC VIẾT CỐT TRUYỆN NẾU KHÔNG CÓ YÊU CẦU BỔ SUNG:
    - Nếu trong gợi ý hoặc ý tưởng sơ lược ("briefIdea" hoặc "feedback") từ người dùng có yêu cầu viết cốt truyện/bối cảnh rõ ràng, bạn hãy thiết kế một cốt truyện sáng tạo.
    - Ngược lại, nếu người dùng KHÔNG yêu cầu gì về bối cảnh/cốt truyện, bạn tuyệt đối KHÔNG ĐƯỢC VIẾT CỐT TRUYỆN (không rùa thỏ, không Tèo Tí, không phiêu lưu, không cổ tích...). Đề bài phải được phát biểu trực tiếp dưới dạng toán học hoặc cấu trúc dữ liệu thô một cách rõ ràng, ngắn gọn và trực quan nhất.
+
+3. QUY TẮC PHÂN CHIA SUBTASK & BẢO TOÀN TÍNH ĐỘC LẬP (ANTI-AC-LEAK):
+   a. TỐI ĐA HÓA SỐ LƯỢNG SUBTASK:
+      - Hãy cố gắng chia bài toán thành NHIỀU SUBTASK NHẤT CÓ THỂ (thông thường từ 4 đến 6 subtask, hoặc ít nhất 3-5 subtask có ý nghĩa thuật toán thực chất).
+      - Các subtask phải tương ứng với các tầng độ phức tạp giải thuật hoặc các trường hợp đặc biệt tự nhiên, ví dụ:
+        + Subtask 1: Vét cạn / Đệ quy quay lui / Sinh nhị phân O(2^N) hoặc O(N!) với N <= 20.
+        + Subtask 2: Quy hoạch động / Duyệt O(N^3) với N <= 100.
+        + Subtask 3: Thuật toán O(N^2) với N <= 3000 hoặc trường hợp đặc biệt (đồ thị là cây/đường thẳng, mảng nhị phân, K=1...).
+        + Subtask 4: Thuật toán O(N sqrt(N)) chia căn hoặc Hai con trỏ với N <= 5*10^4.
+        + Subtask 5: Thuật toán Full Solution O(N log N) hoặc O(N) với N <= 2*10^5 (hoặc 10^6).
+   b. TÍNH ĐỘC LẬP VÀ CHẶN TRIỆT ĐỂ (KHÔNG AC VƯỢT SUBTASK):
+      - BẮT BUỘC mỗi lời giải của subtask k chỉ giải được tối đa đến subtask k.
+      - TUYỆT ĐỐI KHÔNG TỒN TẠI TRƯỜNG HỢP lời giải của subtask trước có thể giải được (AC) các subtask sau.
+      - Giới hạn thời gian (Time Limit), giới hạn N và bộ testcase trong script.txt phải được thiết kế cực kỳ chặt chẽ: testcase của subtask sau phải đủ lớn và chứa các dữ liệu worst-case để chặn đứng hoàn toàn (bị TLE hoặc WA) tất cả các giải thuật chưa tối ưu của subtask trước.
+   c. KIỂU PHÂN BỔ ĐIỂM SỐ SUBTASK:
+      - Áp dụng cấu hình phân bổ điểm: ${subtaskDistribution}
+      - ${distExplanation}
+      - Trong mục "#### Scoring" của Đề bài và file init.yml, hãy ghi rõ số điểm / tỷ lệ % của từng subtask theo đúng quy tắc này.
 
 HỆ THỐNG CÁC THỂ LOẠI BÀI TOÁN THEO HƯỚNG DẪN TEST DATA LQDOJ:
 1. 'standard': So sánh theo token, bỏ qua khoảng trắng. Checker 'standard'.
@@ -64,7 +109,7 @@ YÊU CẦU CHI TIẾT CỦA CÁC THÀNH PHẦN:
             [Giải thích nếu cần]
 - Nếu bài thuộc thể loại 'ioi': Nêu rõ thí sinh cần cài đặt hàm (tên hàm, tham số, kiểu trả về) cho cả C/C++, Python và Java thay vì đọc/ghi luồng chuẩn.
 - Nếu bài thuộc thể loại 'kaggle_csv': Nêu rõ định dạng file CSV yêu cầu, các cột id, label và metric chấm điểm.
-- Phần Scoring (Chấm điểm) phải chia thành các Subtask rõ ràng.
+- Phần Scoring (Chấm điểm) phải chia thành các Subtask rõ ràng với số điểm tuân thủ đúng quy tắc phân bổ điểm: ${subtaskDistribution}.
 - Sử dụng ký hiệu Toán học bằng LaTeX (kẹp giữa dấu $) như $1 \\le N \\le 10^5$. Hãy chắc chắn dấu gạch chéo ngược được escape đúng trong JSON (dùng \\\\ thay vì \\).
 
 2. TEST GENERATOR (testGenerator) VÀ SCRIPT (generatorScript):
@@ -72,7 +117,7 @@ YÊU CẦU CHI TIẾT CỦA CÁC THÀNH PHẦN:
   ./generator [arg_1] [arg_2] ... [seed]
 - In dữ liệu đầu vào (input) ra stdout (cout).
 - In dữ liệu đầu ra mong đợi ra stderr (cerr).
-- Kịch bản "generatorScript" gồm ĐÚNG ${count} dòng tương ứng với ${count} testcases mạnh khác nhau, kết thúc bằng seed ngẫu nhiên thay đổi.
+- Kịch bản "generatorScript" gồm ĐÚNG ${count} dòng tương ứng với ${count} testcases mạnh khác nhau, kết thúc bằng seed ngẫu nhiên thay đổi. Phân chia dải test tương ứng chính xác theo từng Subtask.
 
 3. TRÌNH KIỂM TRA TEST / VALIDATOR (validator):
 - Cung cấp mã nguồn C++ (validatorCpp) và Python (validatorPy) để kiểm tra tính hợp lệ của mọi file input theo đúng ràng buộc đề bài. Đọc từ stdin, exit 0 nếu hợp lệ, exit 1 và in thông báo lỗi ra stderr nếu vi phạm.
@@ -86,6 +131,7 @@ YÊU CẦU CHI TIẾT CỦA CÁC THÀNH PHẦN:
 
 5. SOLUTIONS (solutions):
 - Có bao nhiêu Subtask trong Đề bài thì viết đúng bấy nhiêu lời giải mẫu C++ độc lập tương ứng trong mảng "solutions".
+- Mỗi phần tử trong "solutions" phải được viết chuyên biệt cho subtask đó (ví dụ giải thuật O(N^3) cho subtask 2, giải thuật O(N^2) cho subtask 3, Segment Tree O(N log N) cho Full Solution).
 - Với bài 'ioi', cài đặt hàm tương ứng thay vì hàm main().
 - CẤM TUYỆT ĐỐI KHÔNG SỬ DỤNG #pragma.
 
@@ -199,6 +245,14 @@ const problemSchema = {
       type: Type.STRING,
       description: "JSON cấu hình test cases và batches theo mục 2.4 Hướng dẫn LQDOJ"
     },
+    batchMode: {
+      type: Type.STRING,
+      description: "Quy tắc tính điểm subtask: 'icpc' | 'sum' | 'ioi_min'"
+    },
+    subtaskDistribution: {
+      type: Type.STRING,
+      description: "Kiểu phân bổ điểm subtask: 'decreasing' | 'increasing' | 'equal'"
+    },
     solutions: {
       type: Type.ARRAY,
       items: {
@@ -222,7 +276,7 @@ const problemSchema = {
 // API endpoint to generate or refine LQDOJ problem
 app.post("/api/generate", async (req, res) => {
   try {
-    const { rating, category, briefIdea, problemType, previousProblem, feedback, apiKey, model, testCount } = req.body;
+    const { rating, category, briefIdea, problemType, previousProblem, feedback, apiKey, model, testCount, subtaskDistribution, batchMode } = req.body;
     const keyHeader = req.headers["x-gemini-api-key"] as string;
     const selectedModelHeader = req.headers["x-selected-model"] as string;
 
@@ -232,6 +286,8 @@ app.post("/api/generate", async (req, res) => {
     }
 
     const finalTestCount = testCount && testCount >= 5 && testCount <= 200 ? testCount : 100;
+    const finalSubtaskDist = subtaskDistribution || 'decreasing';
+    const finalBatchMode = batchMode || 'icpc';
 
     const ai = new GoogleGenAI({
       apiKey: resolvedKey,
@@ -243,7 +299,7 @@ app.post("/api/generate", async (req, res) => {
     });
 
     const targetModel = resolveModel(selectedModelHeader || model);
-    const systemInstruction = buildSystemInstruction(rating, category, finalTestCount);
+    const systemInstruction = buildSystemInstruction(rating, category, finalTestCount, finalSubtaskDist);
 
     let userPrompt = "";
 
@@ -266,6 +322,8 @@ Hãy CHỈNH SỬA VÀ CẬP NHẬT bài toán này dựa trên phản hồi c�
 LƯU Ý KHI CHỈNH SỬA:
 - Giữ nguyên các phần không bị yêu cầu thay đổi để đảm bảo tính nhất quán.
 - Kịch bản generatorScript gồm đúng ${finalTestCount} dòng testcase tương ứng.
+- Phân bổ điểm Subtask theo kiểu: ${finalSubtaskDist}.
+- Quy tắc tính điểm: ${finalBatchMode}.
 - Nếu người dùng yêu cầu chỉnh sửa giới hạn, hãy cập nhật tương ứng ở cả Đề bài, Trình sinh test (generator.cpp) và phần Phân tích thuật toán.
 - Đảm bảo mã nguồn C++ (giải thuật mẫu và trình sinh test) vẫn hoàn toàn chính xác và biên dịch được sau khi sửa đổi.
 - Trả về đối tượng JSON đầy đủ sau khi đã sửa đổi.`;
@@ -278,6 +336,8 @@ LƯU Ý KHI CHỈNH SỬA:
 - Độ khó (Rating): ${rating}
 - Chủ đề: ${category}
 - Thể loại bài: ${problemType}
+- Kiểu phân bổ điểm Subtask: ${finalSubtaskDist} (Tối đa hóa số lượng subtask và đảm bảo lời giải trước không AC được subtask sau)
+- Quy tắc tính điểm subtask (Batch mode): ${finalBatchMode}
 - Số lượng testcase sinh tự động: ${finalTestCount} testcases (kịch bản generatorScript gồm đúng ${finalTestCount} dòng tham số)
 ${briefIdea ? `- Ý tưởng sơ lược hoặc gợi ý từ người dùng: ${briefIdea}` : "- Hãy tự sáng tạo ra một bài tập độc đáo, thú vị và phát biểu toán học trực tiếp (tuyệt đối không viết cốt truyện) phù hợp với rating và chủ đề này."}
 
@@ -332,7 +392,7 @@ app.post("/api/generate-stream", async (req, res) => {
   res.setHeader("Connection", "keep-alive");
 
   try {
-    const { rating, category, briefIdea, problemType, apiKey, model } = req.body;
+    const { rating, category, briefIdea, problemType, apiKey, model, testCount, subtaskDistribution, batchMode } = req.body;
     const keyHeader = req.headers["x-gemini-api-key"] as string;
     const selectedModelHeader = req.headers["x-selected-model"] as string;
 
@@ -347,6 +407,10 @@ app.post("/api/generate-stream", async (req, res) => {
       return res.end();
     }
 
+    const finalTestCount = testCount && testCount >= 5 && testCount <= 200 ? testCount : 100;
+    const finalSubtaskDist = subtaskDistribution || 'decreasing';
+    const finalBatchMode = batchMode || 'icpc';
+
     const ai = new GoogleGenAI({
       apiKey: resolvedKey,
       httpOptions: {
@@ -358,12 +422,15 @@ app.post("/api/generate-stream", async (req, res) => {
 
     const targetModel = resolveModel(selectedModelHeader || model);
 
-    const systemInstruction = buildSystemInstruction(rating, category);
+    const systemInstruction = buildSystemInstruction(rating, category, finalTestCount, finalSubtaskDist);
 
     const userPrompt = `Hãy tạo một bài tập lập trình hoàn chỉnh mới với các thông số sau:
 - Độ khó (Rating): ${rating}
 - Chủ đề: ${category}
 - Thể loại bài: ${problemType}
+- Kiểu phân bổ điểm Subtask: ${finalSubtaskDist} (Tối đa hóa số lượng subtask và đảm bảo lời giải trước không AC được subtask sau)
+- Quy tắc tính điểm subtask (Batch mode): ${finalBatchMode}
+- Số lượng testcase sinh tự động: ${finalTestCount} testcases (kịch bản generatorScript gồm đúng ${finalTestCount} dòng tham số)
 ${briefIdea ? `- Ý tưởng sơ lược hoặc gợi ý từ người dùng: ${briefIdea}` : "- Hãy tự sáng tạo ra một bài tập độc đáo, thú vị và phát biểu toán học trực tiếp (tuyệt đối không viết cốt truyện) phù hợp với rating và chủ đề này."}
 
 Hãy trả về kết quả hoàn toàn dưới dạng JSON tuân thủ đúng cấu trúc schema yêu cầu.`;
